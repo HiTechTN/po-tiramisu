@@ -17,7 +17,7 @@ export default async function Home() {
       name: 'Classic Tiramisu',
       description: 'The authentic Italian recipe with mascarpone, espresso, and cocoa.',
       price: 25.0,
-      image_url: null,
+      image_url: '/images/classic.png',
       is_active: true,
       created_at: new Date().toISOString()
     },
@@ -26,7 +26,7 @@ export default async function Home() {
       name: 'Pistachio Tiramisu',
       description: 'A rich twist featuring premium Sicilian pistachio cream.',
       price: 32.0,
-      image_url: null,
+      image_url: '/images/pistachio.png',
       is_active: true,
       created_at: new Date().toISOString()
     }
