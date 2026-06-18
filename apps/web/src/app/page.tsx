@@ -3,8 +3,6 @@ import { supabase } from '@/lib/supabase';
 import { Product } from '@potiramisu/shared';
 import Link from 'next/link';
 
-export const revalidate = 60; // Revalidate every 60s
-
 export default async function Home() {
   const { data: products } = await supabase
     .from('products')

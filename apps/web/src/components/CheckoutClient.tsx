@@ -6,7 +6,7 @@ import { DeliveryZone, AvailableDate } from '@potiramisu/shared';
 import { supabase } from '@/lib/supabase';
 import { ShoppingBag, MapPin, Calendar, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
 
-export function CheckoutClient({ zones }: { zones: DeliveryZone[] }) {
+export function CheckoutClient() {
   const { items, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -16,6 +16,7 @@ export function CheckoutClient({ zones }: { zones: DeliveryZone[] }) {
     zoneId: ''
   });
   const [availableDates, setAvailableDates] = useState<AvailableDate[]>([]);
+  const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string>('');
@@ -23,6 +24,28 @@ export function CheckoutClient({ zones }: { zones: DeliveryZone[] }) {
   const selectedZone = zones.find(z => z.id === formData.zoneId);
   const deliveryFee = selectedZone ? Number(selectedZone.fee_amount) : 0;
   const finalTotal = totalPrice + deliveryFee;
+
+  useEffect(() => {
+    // Fetch zones on component mount
+    const fetchZones = async () => {
+      const { data } = await supabase
+        .from('delivery_zones')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (data && data.length > 0) {
+        setZones(data as DeliveryZone[]);
+      } else {
+        setZones([
+          { id: 'z1', name: 'Tunis Center', fee_amount: 5, is_active: true },
+          { id: 'z2', name: 'Ariana', fee_amount: 7, is_active: true },
+          { id: 'z3', name: 'Marsa / Carthage', fee_amount: 8, is_active: true },
+        ]);
+      }
+    };
+    fetchZones();
+  }, []);
 
   useEffect(() => {
     if (step === 3) {

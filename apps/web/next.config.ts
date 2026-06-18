@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  output: 'export',
+  basePath: '/po-tiramisu',
+  images: {
+    unoptimized: true,
+  },
   /* config options here */
 };
 
