@@ -1,16 +1,5 @@
 @import "tailwindcss";
 
-:root {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --primary: #c2410c; /* Warm orange/amber for Tiramisu vibe */
-  --primary-foreground: #ffffff;
-  --card: rgba(30, 41, 59, 0.7);
-  --card-border: rgba(255, 255, 255, 0.1);
-  --glass: rgba(15, 23, 42, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.08);
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -23,32 +12,50 @@
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
+:root {
+  --background: #110c08; /* Deep espresso */
+  --foreground: #fdfaf6; /* Cream */
+  --primary: #c28859; /* Caramel/Gold */
+  --primary-foreground: #110c08;
+  --card: rgba(30, 22, 18, 0.7);
+  --glass: rgba(17, 12, 8, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
+
 body {
   background: var(--background);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(194, 65, 12, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(194, 65, 12, 0.15) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(194, 136, 89, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(194, 136, 89, 0.1) 0px, transparent 50%);
   background-attachment: fixed;
   color: var(--foreground);
   min-height: 100vh;
 }
 
 /* Glassmorphism utilities */
-.glass-panel {
+@utility glass {
   background: var(--glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--glass-border);
-  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-.card-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+@utility glass-card {
+  background: var(--glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border-radius: 1.5rem;
+  transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
-  border-color: rgba(255, 255, 255, 0.2);
+
+.glass-card:hover {
+  background: rgba(30, 22, 18, 0.8);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 16px 48px rgba(194, 136, 89, 0.15);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Custom Scrollbar */
@@ -66,11 +73,52 @@ body {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Animations */
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* View Transitions setup */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.5s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.animate-fade-in {
-  animation: fade-in 0.5s ease-out forwards;
+
+::view-transition-old(root) {
+  animation-name: fade-out, scale-down;
+}
+
+::view-transition-new(root) {
+  animation-name: fade-in, scale-up;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+@keyframes scale-down {
+  to { transform: scale(0.98); }
+}
+@keyframes scale-up {
+  from { transform: scale(1.02); }
+}
+
+/* Scroll-driven animations */
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    @keyframes reveal-up {
+      from {
+        opacity: 0;
+        transform: translateY(100px) scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .animate-on-scroll {
+      animation: reveal-up auto cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      animation-timeline: view();
+      animation-range: entry 5% cover 25%;
+    }
+  }
 }

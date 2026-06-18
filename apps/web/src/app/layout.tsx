@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Outfit } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/components/CartProvider';
+import { TransitionLink } from '@/components/TransitionLink';
 
-const inter = Inter({ subsets: ['latin'] });
+const outfit = Outfit({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Po Tiramisu | Premium Italian Desserts',
@@ -17,13 +18,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} min-h-screen antialiased flex flex-col`}>
+      <body className={`${outfit.className} min-h-screen antialiased flex flex-col`}>
         <CartProvider>
-          <header className="fixed top-0 w-full z-50 glass-panel border-x-0 border-t-0 rounded-none bg-opacity-50">
+          <header className="fixed top-0 w-full z-50 glass border-x-0 border-t-0 rounded-none">
             <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-              <a href="/" className="text-2xl font-bold tracking-tighter text-white">
+              <TransitionLink href="/" className="text-2xl font-bold tracking-tighter text-white">
                 Po <span className="text-primary">Tiramisu</span>
-              </a>
+              </TransitionLink>
               {/* Cart Icon can be placed here later */}
             </div>
           </header>

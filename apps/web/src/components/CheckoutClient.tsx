@@ -68,6 +68,16 @@ export function CheckoutClient() {
     }
   }, [step]);
 
+  const handleSetStep = (newStep: number) => {
+    if (!document.startViewTransition) {
+      setStep(newStep);
+    } else {
+      document.startViewTransition(() => {
+        setStep(newStep);
+      });
+    }
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
@@ -100,7 +110,7 @@ export function CheckoutClient() {
       }
       
       clearCart();
-      setStep(4);
+      handleSetStep(4);
     } catch (error) {
       console.error(error);
     } finally {
@@ -110,10 +120,10 @@ export function CheckoutClient() {
 
   if (items.length === 0 && step !== 4) {
     return (
-      <div className="glass-panel p-8 text-center">
-        <ShoppingBag className="mx-auto h-16 w-16 text-slate-500 mb-4" />
-        <h2 className="text-2xl font-bold text-white mb-4">Your cart is empty</h2>
-        <a href="/" className="text-primary hover:underline">Go back to menu</a>
+      <div className="glass-card p-12 text-center animate-on-scroll">
+        <ShoppingBag className="mx-auto h-20 w-20 text-white/30 mb-6" />
+        <h2 className="text-3xl font-bold text-white mb-4">Your cart is empty</h2>
+        <a href="/" className="text-primary hover:text-white transition-colors text-lg font-medium">Go back to menu</a>
       </div>
     );
   }
@@ -125,33 +135,33 @@ export function CheckoutClient() {
         
         {/* Step 1: Cart Review */}
         {step === 1 && (
-          <div className="glass-panel p-6 animate-fade-in">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+          <div className="glass-card p-8">
+            <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
               <ShoppingBag className="text-primary" /> Review Order
             </h2>
-            <div className="space-y-4 mb-6">
+            <div className="space-y-4 mb-8">
               {items.map(item => (
-                <div key={item.id} className="flex items-center justify-between bg-slate-800/50 p-4 rounded-xl border border-white/5">
+                <div key={item.id} className="flex items-center justify-between bg-black/20 p-5 rounded-2xl border border-white/5 hover:border-primary/30 transition-colors">
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold">{item.name}</h3>
-                    <p className="text-primary text-sm">{item.price} TND</p>
+                    <h3 className="text-white font-semibold text-lg">{item.name}</h3>
+                    <p className="text-primary font-medium">{item.price.toFixed(2)} TND</p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 bg-slate-900 rounded-lg p-1">
-                      <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center text-white hover:bg-slate-800 rounded-md">-</button>
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-3 bg-black/40 rounded-xl p-1">
+                      <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/10 rounded-lg transition-colors">-</button>
                       <span className="w-8 text-center text-white font-medium">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center text-white hover:bg-slate-800 rounded-md">+</button>
+                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/10 rounded-lg transition-colors">+</button>
                     </div>
-                    <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-300 p-2">
-                      <Trash2 size={20} />
+                    <button onClick={() => removeFromCart(item.id)} className="text-white/40 hover:text-red-400 p-2 transition-colors">
+                      <Trash2 size={24} />
                     </button>
                   </div>
                 </div>
               ))}
             </div>
             <button 
-              onClick={() => setStep(2)}
-              className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 rounded-xl transition-colors"
+              onClick={() => handleSetStep(2)}
+              className="w-full bg-primary/90 hover:bg-primary text-white font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(194,136,89,0.2)] hover:shadow-[0_0_30px_rgba(194,136,89,0.4)] active:scale-[0.98]"
             >
               Proceed to Details
             </button>
@@ -160,65 +170,65 @@ export function CheckoutClient() {
 
         {/* Step 2: Customer Details */}
         {step === 2 && (
-          <div className="glass-panel p-6 animate-fade-in">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+          <div className="glass-card p-8">
+            <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
               <MapPin className="text-primary" /> Delivery Details
             </h2>
-            <div className="space-y-4 mb-6">
+            <div className="space-y-5 mb-8">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Full Name</label>
+                <label className="block text-sm font-medium text-white/70 mb-2">Full Name</label>
                 <input 
                   type="text" 
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-colors"
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors"
                   placeholder="John Doe"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Phone Number</label>
+                <label className="block text-sm font-medium text-white/70 mb-2">Phone Number</label>
                 <input 
                   type="tel" 
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-colors"
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors"
                   placeholder="216 XX XXX XXX"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Delivery Zone</label>
+                <label className="block text-sm font-medium text-white/70 mb-2">Delivery Zone</label>
                 <select 
                   value={formData.zoneId}
                   onChange={(e) => setFormData({...formData, zoneId: e.target.value})}
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-colors"
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors appearance-none"
                 >
-                  <option value="">Select a zone</option>
+                  <option value="" className="bg-black text-white">Select a zone</option>
                   {zones.map(z => (
-                    <option key={z.id} value={z.id}>{z.name} (+{z.fee_amount} TND)</option>
+                    <option key={z.id} value={z.id} className="bg-black text-white">{z.name} (+{z.fee_amount} TND)</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Detailed Address</label>
+                <label className="block text-sm font-medium text-white/70 mb-2">Detailed Address</label>
                 <textarea 
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-colors h-24 resize-none"
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors h-28 resize-none"
                   placeholder="Street, Building, Apt..."
                 />
               </div>
             </div>
             <div className="flex gap-4">
               <button 
-                onClick={() => setStep(1)}
-                className="w-1/3 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-colors"
+                onClick={() => handleSetStep(1)}
+                className="w-1/3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-4 rounded-xl transition-colors"
               >
                 Back
               </button>
               <button 
-                onClick={() => setStep(3)}
+                onClick={() => handleSetStep(3)}
                 disabled={!formData.name || !formData.phone || !formData.zoneId || !formData.address}
-                className="w-2/3 bg-primary hover:bg-orange-600 disabled:bg-slate-700 disabled:text-slate-400 text-white font-bold py-4 rounded-xl transition-colors"
+                className="w-2/3 bg-primary/90 hover:bg-primary disabled:bg-white/5 disabled:text-white/30 text-white font-bold py-4 rounded-xl transition-all disabled:shadow-none shadow-[0_0_20px_rgba(194,136,89,0.2)] hover:shadow-[0_0_30px_rgba(194,136,89,0.4)] active:scale-[0.98]"
               >
                 Choose Delivery Date
               </button>
@@ -228,17 +238,17 @@ export function CheckoutClient() {
 
         {/* Step 3: Date Selection */}
         {step === 3 && (
-          <div className="glass-panel p-6 animate-fade-in">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+          <div className="glass-card p-8">
+            <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
               <Calendar className="text-primary" /> Select Delivery Date
             </h2>
             
             {availableDates.length === 0 ? (
-              <div className="flex items-center justify-center h-40">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <div className="flex items-center justify-center h-48">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
                 {availableDates.map(date => {
                   const dateObj = new Date(date.available_date);
                   const formatted = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -246,13 +256,13 @@ export function CheckoutClient() {
                     <button
                       key={date.available_date}
                       onClick={() => setSelectedDate(date.available_date)}
-                      className={`p-4 rounded-xl border-2 transition-all ${
+                      className={`p-5 rounded-2xl border-2 transition-all duration-300 ${
                         selectedDate === date.available_date 
-                          ? 'border-primary bg-primary/20 text-white shadow-lg shadow-primary/20' 
-                          : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:border-slate-500'
+                          ? 'border-primary bg-primary/20 text-white shadow-[0_0_20px_rgba(194,136,89,0.2)] transform scale-105' 
+                          : 'border-white/5 bg-black/20 text-white/60 hover:border-white/20 hover:text-white'
                       }`}
                     >
-                      <div className="font-semibold">{formatted}</div>
+                      <div className="font-semibold text-lg">{formatted}</div>
                     </button>
                   );
                 })}
@@ -261,20 +271,20 @@ export function CheckoutClient() {
             
             <div className="flex gap-4">
               <button 
-                onClick={() => setStep(2)}
-                className="w-1/3 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-colors"
+                onClick={() => handleSetStep(2)}
+                className="w-1/3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-4 rounded-xl transition-colors"
               >
                 Back
               </button>
               <button 
                 onClick={handleSubmit}
                 disabled={!selectedDate || isSubmitting}
-                className="w-2/3 bg-primary hover:bg-orange-600 disabled:bg-slate-700 disabled:text-slate-400 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                className="w-2/3 bg-primary/90 hover:bg-primary disabled:bg-white/5 disabled:text-white/30 text-white font-bold py-4 rounded-xl transition-all disabled:shadow-none shadow-[0_0_20px_rgba(194,136,89,0.2)] hover:shadow-[0_0_30px_rgba(194,136,89,0.4)] active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 {isSubmitting ? <Loader2 className="animate-spin" /> : 'Place Order (COD)'}
               </button>
             </div>
-            <p className="text-center text-sm text-slate-400 mt-4">
+            <p className="text-center text-sm text-white/40 mt-6">
               Payment is Cash on Delivery only.
             </p>
           </div>
@@ -282,16 +292,16 @@ export function CheckoutClient() {
 
         {/* Step 4: Success */}
         {step === 4 && (
-          <div className="glass-panel p-12 text-center animate-fade-in">
-            <CheckCircle2 className="mx-auto h-20 w-20 text-green-500 mb-6" />
-            <h2 className="text-3xl font-bold text-white mb-2">Order Confirmed!</h2>
-            <p className="text-slate-300 mb-6">Thank you for your order. We are preparing it with love.</p>
-            <div className="bg-slate-800/50 border border-white/10 rounded-xl p-4 inline-block mb-8">
-              <p className="text-sm text-slate-400">Order Reference</p>
-              <p className="text-xl font-mono text-white font-bold">{orderId.split('-')[0].toUpperCase()}</p>
+          <div className="glass-card p-16 text-center">
+            <CheckCircle2 className="mx-auto h-24 w-24 text-primary mb-8 animate-[scale-up_0.5s_ease-out]" />
+            <h2 className="text-4xl font-bold text-white mb-4">Order Confirmed!</h2>
+            <p className="text-white/70 mb-8 text-lg">Thank you for your order. We are preparing it with love.</p>
+            <div className="bg-black/30 border border-white/10 rounded-2xl p-6 inline-block mb-10">
+              <p className="text-sm text-white/50 mb-2">Order Reference</p>
+              <p className="text-3xl font-mono text-white font-bold tracking-wider">{orderId.split('-')[0].toUpperCase()}</p>
             </div>
             <br />
-            <a href="/" className="bg-primary hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-colors inline-block">
+            <a href="/" className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold py-4 px-10 rounded-xl transition-colors inline-block">
               Back to Menu
             </a>
           </div>
@@ -302,25 +312,25 @@ export function CheckoutClient() {
       {/* Order Summary Sidebar */}
       {step < 4 && (
         <div className="lg:col-span-1">
-          <div className="glass-panel p-6 sticky top-24">
-            <h3 className="text-xl font-bold text-white mb-4">Summary</h3>
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between text-slate-300">
+          <div className="glass-card p-8 sticky top-24">
+            <h3 className="text-2xl font-bold text-white mb-6">Summary</h3>
+            <div className="space-y-4 mb-8">
+              <div className="flex justify-between text-white/70">
                 <span>Subtotal</span>
-                <span>{totalPrice.toFixed(2)} TND</span>
+                <span className="text-white">{totalPrice.toFixed(2)} TND</span>
               </div>
-              <div className="flex justify-between text-slate-300">
+              <div className="flex justify-between text-white/70">
                 <span>Delivery</span>
-                <span>{selectedZone ? `${deliveryFee.toFixed(2)} TND` : 'Calculated next'}</span>
+                <span className="text-white">{selectedZone ? `${deliveryFee.toFixed(2)} TND` : 'Calculated next'}</span>
               </div>
             </div>
-            <div className="h-px bg-white/10 mb-6"></div>
-            <div className="flex justify-between items-center mb-6">
-              <span className="text-lg font-medium text-white">Total</span>
-              <span className="text-2xl font-bold text-primary">{finalTotal.toFixed(2)} TND</span>
+            <div className="h-px bg-white/10 mb-8"></div>
+            <div className="flex justify-between items-center mb-8">
+              <span className="text-xl font-medium text-white">Total</span>
+              <span className="text-3xl font-bold text-primary">{finalTotal.toFixed(2)} TND</span>
             </div>
             
-            <div className="text-xs text-slate-500 space-y-2">
+            <div className="text-sm text-white/40 space-y-3 bg-black/20 p-4 rounded-xl border border-white/5">
               <p>• Orders placed after 18:00 are delivered in J+2 minimum.</p>
               <p>• Daily capacity is limited to guarantee freshness.</p>
             </div>
