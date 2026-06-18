@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL:-http://supabase:8000}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-anon_key}
+    restart: always
+
+# Note: Supabase services (db, rest, realtime, auth, etc) 
+# usually require their own complex compose setup.
+# For local dev, using `supabase start` via CLI is highly recommended.
+# This compose file is primarily for the client web app as requested.
