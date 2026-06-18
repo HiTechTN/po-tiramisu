@@ -38,9 +38,13 @@ export function CheckoutClient() {
         setZones(data as DeliveryZone[]);
       } else {
         setZones([
-          { id: 'z1', name: 'Tunis Center', fee_amount: 5, is_active: true },
-          { id: 'z2', name: 'Ariana', fee_amount: 7, is_active: true },
-          { id: 'z3', name: 'Marsa / Carthage', fee_amount: 8, is_active: true },
+          { id: 'z1', name: 'Centre Ville', fee_amount: 4, is_active: true },
+          { id: 'z2', name: 'Bardo', fee_amount: 4, is_active: true },
+          { id: 'z3', name: 'Mourouj', fee_amount: 4, is_active: true },
+          { id: 'z4', name: 'Rades', fee_amount: 4, is_active: true },
+          { id: 'z5', name: 'Menzah', fee_amount: 4, is_active: true },
+          { id: 'z6', name: 'Manar', fee_amount: 4, is_active: true },
+          { id: 'z7', name: 'Ariana Ville', fee_amount: 4, is_active: true },
         ]);
       }
     };

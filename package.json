@@ -12,5 +12,8 @@
   "workspaces": [
     "packages/*",
     "apps/*"
-  ]
+  ],
+  "dependencies": {
+    "puppeteer-core": "^25.1.0"
+  }
 }
