@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'export',
-  basePath: '/po-tiramisu',
+  // Do not use basePath when building for Capacitor native apps
+  basePath: process.env.CAPACITOR_BUILD === '1' ? undefined : '/po-tiramisu',
   images: {
     unoptimized: true,
   },
