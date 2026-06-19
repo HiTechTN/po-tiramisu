@@ -1,8 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import { Product } from '@potiramisu/shared';
 import { useCart } from './CartProvider';
-import { ShoppingCart, Image } from 'lucide-react';
+import { ShoppingCart, Image as ImageIcon } from 'lucide-react';
 
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
@@ -11,14 +12,15 @@ export function ProductCard({ product }: { product: Product }) {
     <div className="glass-card animate-on-scroll flex flex-col h-full overflow-hidden group">
       <div className="aspect-[4/3] w-full overflow-hidden bg-black/40 relative">
         {product.image_url ? (
-          <img 
+          <Image 
             src={product.image_url} 
             alt={product.name} 
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            fill
+            className="object-cover transition-transform duration-700 group-hover:scale-110"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-primary opacity-50 group-hover:scale-110 transition-transform duration-700">
-            <Image size={48} />
+            <ImageIcon size={48} />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />

@@ -1,41 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Switch, TextInput, Button, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Switch, TextInput, Platform, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInUp, FadeOutUp, Layout } from 'react-native-reanimated';
 import { supabase } from './src/lib/supabase';
 import { Order, RawMaterialRequirement } from '@potiramisu/shared';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 
-// Premium Theme Colors
 const theme = {
-  bg: '#0F0B09', // Deep espresso
-  cardBg: '#1A1412', // Slightly lighter coffee
+  bg: '#0F0B09',
+  cardBg: '#1A1412',
   cardBorder: '#3A2E2A',
-  primary: '#C28859', // Warm caramel
+  primary: '#C28859',
   textMain: '#FDFBF7',
   textMuted: '#A89F9A',
   accent: '#E5A97C',
 };
 
-export default function App() {
+function AdminApp() {
   const [activeTab, setActiveTab] = useState<'queue' | 'materials' | 'settings'>('queue');
-  
-  // State for Queue
   const [orders, setOrders] = useState<Order[]>([]);
-
-  // State for Materials
   const [targetDate, setTargetDate] = useState<string>('');
   const [materials, setMaterials] = useState<RawMaterialRequirement[]>([]);
-
-  // State for Settings
   const [isStoreClosed, setIsStoreClosed] = useState(false);
+  const [storeToggleLoading, setStoreToggleLoading] = useState(false);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+
+  const fetchOrders = useCallback(async () => {
+    const { data } = await supabase
+      .from('orders')
+      .select('*')
+      .neq('status', 'completed')
+      .order('created_at', { ascending: false });
+    if (data) setOrders(data as Order[]);
+  }, []);
+
+  const fetchStoreStatus = useCallback(async () => {
+    const { data } = await supabase.rpc('is_store_open', { check_date: new Date().toISOString().split('T')[0] });
+    if (data !== null && data !== undefined) {
+      setIsStoreClosed(!data);
+    }
+  }, []);
 
   useEffect(() => {
     fetchOrders();
+    fetchStoreStatus();
 
     const channel = supabase
-      .channel('schema-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => {
-        console.log('Order Change received!', payload);
+      .channel('admin-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         fetchOrders();
       })
       .subscribe();
@@ -43,35 +55,30 @@ export default function App() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchOrders, fetchStoreStatus]);
 
   const triggerHaptic = () => {
     if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
     }
   };
 
   const triggerSuccessHaptic = () => {
     if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
     }
-  };
-
-  const fetchOrders = async () => {
-    const { data } = await supabase
-      .from('orders')
-      .select('*')
-      .neq('status', 'completed')
-      .order('created_at', { ascending: false });
-    if (data) setOrders(data as Order[]);
   };
 
   const updateOrderStatus = async (id: string, currentStatus: string) => {
     triggerSuccessHaptic();
-    const statuses = ['pending', 'preparing', 'delivering', 'completed', 'cancelled'];
-    const nextIndex = statuses.indexOf(currentStatus) + 1;
+    const statuses: readonly Order['status'][] = ['pending', 'preparing', 'delivering', 'completed', 'cancelled'];
+    const nextIndex = statuses.indexOf(currentStatus as Order['status']) + 1;
     if (nextIndex < statuses.length) {
-      await supabase.from('orders').update({ status: statuses[nextIndex] }).eq('id', id);
+      const { error } = await supabase.from('orders').update({ status: statuses[nextIndex] }).eq('id', id);
+      if (error) {
+        Alert.alert('Error', 'Failed to update order status');
+        return;
+      }
       fetchOrders();
     }
   };
@@ -79,10 +86,29 @@ export default function App() {
   const calculateMaterials = async () => {
     triggerHaptic();
     if (!targetDate) return;
+    setMaterialsLoading(true);
     const { data, error } = await supabase.rpc('get_raw_material_requirements', { target_date: targetDate });
-    if (data && !error) {
+    if (error) {
+      Alert.alert('Error', 'Failed to calculate materials');
+    } else if (data) {
       setMaterials(data as RawMaterialRequirement[]);
     }
+    setMaterialsLoading(false);
+  };
+
+  const toggleStore = async (value: boolean) => {
+    triggerHaptic();
+    setStoreToggleLoading(true);
+    const { error } = await supabase.rpc('set_store_closed', {
+      closed: value,
+      target_date: new Date().toISOString().split('T')[0],
+    });
+    if (error) {
+      Alert.alert('Error', 'Failed to update store status');
+      return;
+    }
+    setIsStoreClosed(value);
+    setStoreToggleLoading(false);
   };
 
   const switchTab = (tab: typeof activeTab) => {
@@ -144,8 +170,8 @@ export default function App() {
                 placeholder="2024-06-25"
                 placeholderTextColor={theme.textMuted}
               />
-              <TouchableOpacity style={styles.buttonPrimary} onPress={calculateMaterials}>
-                <Text style={styles.buttonText}>Calculate</Text>
+              <TouchableOpacity style={styles.buttonPrimary} onPress={calculateMaterials} disabled={materialsLoading}>
+                <Text style={styles.buttonText}>{materialsLoading ? '...' : 'Calculate'}</Text>
               </TouchableOpacity>
             </View>
             
@@ -168,24 +194,31 @@ export default function App() {
           <Animated.View entering={FadeInUp.springify()} style={styles.settingsContainer}>
             <Text style={styles.settingsHeader}>Store Operations</Text>
             <View style={styles.settingRow}>
-              <Text style={styles.settingText}>Force Close Store</Text>
+              <Text style={styles.settingText}>Close Store for Today</Text>
               <Switch
                 value={isStoreClosed}
-                onValueChange={(val) => {
-                  triggerHaptic();
-                  setIsStoreClosed(val);
-                }}
+                onValueChange={toggleStore}
+                disabled={storeToggleLoading}
                 trackColor={{ false: theme.cardBorder, true: theme.primary }}
                 thumbColor={theme.textMain}
               />
             </View>
             <Text style={styles.helperText}>
-              When enabled, customers will not be able to select any new delivery dates. (Note: Database trigger to actual daily_capacity logic needed to fully enforce).
+              When enabled, customers will not be able to select today as a delivery date.
+              The store status is persisted in the database.
             </Text>
           </Animated.View>
         )}
       </View>
     </View>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AdminApp />
+    </ErrorBoundary>
   );
 }
 

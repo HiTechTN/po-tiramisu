@@ -6,3 +6,4 @@ apps/web/.next/
 apps/web/out/
 apps/admin/.expo/
 apps/admin/dist/
+packages/shared/dist/

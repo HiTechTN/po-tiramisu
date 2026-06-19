@@ -20,24 +20,21 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('tiramisu_cart');
-    if (saved) {
+  const [items, setItems] = useState<CartItem[]>(() => {
+    if (typeof window !== 'undefined') {
       try {
-        setItems(JSON.parse(saved));
-      } catch (e) {}
+        const saved = localStorage.getItem('tiramisu_cart');
+        if (saved) return JSON.parse(saved) as CartItem[];
+      } catch {
+        // invalid stored data
+      }
     }
-    setIsMounted(true);
-  }, []);
+    return [];
+  });
 
   useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('tiramisu_cart', JSON.stringify(items));
-    }
-  }, [items, isMounted]);
+    localStorage.setItem('tiramisu_cart', JSON.stringify(items));
+  }, [items]);
 
   const addToCart = (product: Product) => {
     setItems((prev) => {

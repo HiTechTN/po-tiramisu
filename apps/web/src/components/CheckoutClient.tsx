@@ -1,10 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { z } from 'zod';
 import { useCart } from './CartProvider';
 import { DeliveryZone, AvailableDate } from '@potiramisu/shared';
 import { supabase } from '@/lib/supabase';
-import { ShoppingBag, MapPin, Calendar, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { ShoppingBag, MapPin, Calendar, CheckCircle2, Loader2, Trash2, AlertTriangle } from 'lucide-react';
+
+const deliverySchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  phone: z.string().regex(/^(\+?216)?\d{8}$/, 'Enter a valid Tunisian phone number (8 digits)'),
+  zoneId: z.string().min(1, 'Please select a delivery zone'),
+  address: z.string().min(10, 'Please enter a complete address (min 10 characters)'),
+});
+
+type FormErrors = Partial<Record<keyof typeof deliverySchema.shape, string>>;
 
 export function CheckoutClient() {
   const { items, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
@@ -15,64 +26,63 @@ export function CheckoutClient() {
     address: '',
     zoneId: ''
   });
+  const [errors, setErrors] = useState<FormErrors>({});
   const [availableDates, setAvailableDates] = useState<AvailableDate[]>([]);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string>('');
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const selectedZone = zones.find(z => z.id === formData.zoneId);
   const deliveryFee = selectedZone ? Number(selectedZone.fee_amount) : 0;
   const finalTotal = totalPrice + deliveryFee;
 
   useEffect(() => {
-    // Fetch zones on component mount
-    const fetchZones = async () => {
-      const { data } = await supabase
-        .from('delivery_zones')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-      
-      if (data && data.length > 0) {
-        setZones(data as DeliveryZone[]);
-      } else {
-        setZones([
-          { id: 'z1', name: 'Centre Ville', fee_amount: 4, is_active: true },
-          { id: 'z2', name: 'Bardo', fee_amount: 4, is_active: true },
-          { id: 'z3', name: 'Mourouj', fee_amount: 4, is_active: true },
-          { id: 'z4', name: 'Rades', fee_amount: 4, is_active: true },
-          { id: 'z5', name: 'Menzah', fee_amount: 4, is_active: true },
-          { id: 'z6', name: 'Manar', fee_amount: 4, is_active: true },
-          { id: 'z7', name: 'Ariana Ville', fee_amount: 4, is_active: true },
-        ]);
-      }
-    };
-    fetchZones();
+    supabase
+      .from('delivery_zones')
+      .select('*')
+      .eq('is_active', true)
+      .order('name')
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setZones(data as DeliveryZone[]);
+        }
+      });
   }, []);
 
   useEffect(() => {
     if (step === 3) {
-      // Fetch available dates when reaching step 3
-      const fetchDates = async () => {
-        const { data, error } = await supabase.rpc('get_available_dates', { check_days: 14 });
-        if (data && !error) {
-          setAvailableDates(data as AvailableDate[]);
-        } else {
-          // Mock data fallback if RPC isn't deployed yet
-          const d1 = new Date(); d1.setDate(d1.getDate() + 2);
-          const d2 = new Date(); d2.setDate(d2.getDate() + 3);
-          setAvailableDates([
-            { available_date: d1.toISOString().split('T')[0], reason: 'available' },
-            { available_date: d2.toISOString().split('T')[0], reason: 'available' }
-          ]);
-        }
-      };
-      fetchDates();
+      supabase
+        .rpc('get_available_dates', { check_days: 14 })
+        .then(({ data, error }) => {
+          if (data && !error) {
+            setAvailableDates(data as AvailableDate[]);
+          }
+        });
     }
   }, [step]);
 
+  const validateStep = (): boolean => {
+    const result = deliverySchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: FormErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof FormErrors;
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = issue.message;
+        }
+      }
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
   const handleSetStep = (newStep: number) => {
+    if (newStep === 3 && !validateStep()) return;
+
     if (!document.startViewTransition) {
       setStep(newStep);
     } else {
@@ -83,40 +93,41 @@ export function CheckoutClient() {
   };
 
   const handleSubmit = async () => {
+    if (!validateStep()) return;
+
     setIsSubmitting(true);
+    setSubmitError(null);
+
     try {
-      // Create order
       const { data: orderData, error: orderError } = await supabase.from('orders').insert({
         customer_name: formData.name,
         customer_phone: formData.phone,
         customer_address: formData.address,
-        delivery_zone_id: formData.zoneId === 'z1' || formData.zoneId.startsWith('z') ? null : formData.zoneId, // handle mock
+        delivery_zone_id: formData.zoneId,
         total_amount: finalTotal,
         delivery_fee: deliveryFee,
         delivery_date: selectedDate,
         status: 'pending'
       }).select().single();
 
-      if (orderData) {
-        // Insert order items
-        const orderItems = items.map(item => ({
-          order_id: orderData.id,
-          product_id: item.id.length > 5 ? item.id : null, // handle mock id
-          quantity: item.quantity,
-          unit_price: item.price
-        }));
-        
-        await supabase.from('order_items').insert(orderItems);
-        setOrderId(orderData.id);
-      } else {
-        // Fallback for mock environment
-        setOrderId('mock-order-' + Math.floor(Math.random() * 1000));
-      }
-      
+      if (orderError) throw new Error(orderError.message);
+      if (!orderData) throw new Error('Failed to create order');
+
+      const orderItems = items.map(item => ({
+        order_id: orderData.id,
+        product_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price
+      }));
+
+      const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+      if (itemsError) throw new Error(itemsError.message);
+
+      setOrderId(orderData.id);
       clearCart();
       handleSetStep(4);
     } catch (error) {
-      console.error(error);
+      setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
     }
@@ -127,16 +138,22 @@ export function CheckoutClient() {
       <div className="glass-card p-12 text-center animate-on-scroll">
         <ShoppingBag className="mx-auto h-20 w-20 text-white/30 mb-6" />
         <h2 className="text-3xl font-bold text-white mb-4">Your cart is empty</h2>
-        <a href="/" className="text-primary hover:text-white transition-colors text-lg font-medium">Go back to menu</a>
+        <Link href="/" className="text-primary hover:text-white transition-colors text-lg font-medium">Go back to menu</Link>
       </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Main Checkout Area */}
       <div className="lg:col-span-2 space-y-6">
         
+        {submitError && (
+          <div className="glass-card p-4 flex items-center gap-3 border-red-500/30">
+            <AlertTriangle className="text-red-400 shrink-0" size={20} />
+            <p className="text-red-300 text-sm">{submitError}</p>
+          </div>
+        )}
+
         {/* Step 1: Cart Review */}
         {step === 1 && (
           <div className="glass-card p-8">
@@ -185,9 +202,10 @@ export function CheckoutClient() {
                   type="text" 
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full bg-black/20 border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors"
+                  className={`w-full bg-black/20 border ${errors.name ? 'border-red-500' : 'border-white/10'} rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors`}
                   placeholder="John Doe"
                 />
+                {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">Phone Number</label>
@@ -195,31 +213,34 @@ export function CheckoutClient() {
                   type="tel" 
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  className="w-full bg-black/20 border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors"
+                  className={`w-full bg-black/20 border ${errors.phone ? 'border-red-500' : 'border-white/10'} rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors`}
                   placeholder="216 XX XXX XXX"
                 />
+                {errors.phone && <p className="text-red-400 text-sm mt-1">{errors.phone}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">Delivery Zone</label>
                 <select 
                   value={formData.zoneId}
                   onChange={(e) => setFormData({...formData, zoneId: e.target.value})}
-                  className="w-full bg-black/20 border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors appearance-none"
+                  className={`w-full bg-black/20 border ${errors.zoneId ? 'border-red-500' : 'border-white/10'} rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors appearance-none`}
                 >
                   <option value="" className="bg-black text-white">Select a zone</option>
                   {zones.map(z => (
                     <option key={z.id} value={z.id} className="bg-black text-white">{z.name} (+{z.fee_amount} TND)</option>
                   ))}
                 </select>
+                {errors.zoneId && <p className="text-red-400 text-sm mt-1">{errors.zoneId}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">Detailed Address</label>
                 <textarea 
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  className="w-full bg-black/20 border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors h-28 resize-none"
+                  className={`w-full bg-black/20 border ${errors.address ? 'border-red-500' : 'border-white/10'} rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-colors h-28 resize-none`}
                   placeholder="Street, Building, Apt..."
                 />
+                {errors.address && <p className="text-red-400 text-sm mt-1">{errors.address}</p>}
               </div>
             </div>
             <div className="flex gap-4">
@@ -231,7 +252,6 @@ export function CheckoutClient() {
               </button>
               <button 
                 onClick={() => handleSetStep(3)}
-                disabled={!formData.name || !formData.phone || !formData.zoneId || !formData.address}
                 className="w-2/3 bg-primary/90 hover:bg-primary disabled:bg-white/5 disabled:text-white/30 text-white font-bold py-4 rounded-xl transition-all disabled:shadow-none shadow-[0_0_20px_rgba(194,136,89,0.2)] hover:shadow-[0_0_30px_rgba(194,136,89,0.4)] active:scale-[0.98]"
               >
                 Choose Delivery Date
@@ -305,9 +325,9 @@ export function CheckoutClient() {
               <p className="text-3xl font-mono text-white font-bold tracking-wider">{orderId.split('-')[0].toUpperCase()}</p>
             </div>
             <br />
-            <a href="/" className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold py-4 px-10 rounded-xl transition-colors inline-block">
+            <Link href="/" className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold py-4 px-10 rounded-xl transition-colors inline-block">
               Back to Menu
-            </a>
+            </Link>
           </div>
         )}
 

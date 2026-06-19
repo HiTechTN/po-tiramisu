@@ -44,8 +44,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
+      - name: Build shared package
+        run: npm run build -w packages/shared
+
       - name: Build with Next.js
-        run: npm run build --workspace=apps/web
+        run: npm run build -w apps/web
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}

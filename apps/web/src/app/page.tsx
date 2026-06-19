@@ -1,37 +1,7 @@
-import { ProductCard } from '@/components/ProductCard';
-import { supabase } from '@/lib/supabase';
-import { Product } from '@potiramisu/shared';
+import { CatalogSection } from '@/components/CatalogSection';
 import Link from 'next/link';
 
-export default async function Home() {
-  const { data: products } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
-
-  // Dummy data fallback for UI testing without DB records
-  const displayProducts: Product[] = products?.length ? products : [
-    {
-      id: '1',
-      name: 'Classic Tiramisu',
-      description: 'The authentic Italian recipe with mascarpone, espresso, and cocoa.',
-      price: 10.0,
-      image_url: '/images/classic.png',
-      is_active: true,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: '2',
-      name: 'Nutella Speculoos Tiramisu',
-      description: 'A rich twist featuring premium Nutella and crushed Speculoos cookies.',
-      price: 15.0,
-      image_url: '/images/nutella_speculoos.png',
-      is_active: true,
-      created_at: new Date().toISOString()
-    }
-  ];
-
+export default function Home() {
   return (
     <div className="animate-fade-in space-y-16">
       {/* Hero Section */}
@@ -58,19 +28,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Catalog Section */}
-      <section id="catalog" className="scroll-mt-24">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-bold text-white">Our Menu</h2>
-          <div className="h-px bg-white/10 flex-1 ml-6"></div>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {displayProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+      <CatalogSection />
     </div>
   );
 }
