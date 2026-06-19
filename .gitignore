@@ -7,3 +7,6 @@ apps/web/out/
 apps/admin/.expo/
 apps/admin/dist/
 packages/shared/dist/
+*.apk
+*.zip
+apps/web/android/app/build/
