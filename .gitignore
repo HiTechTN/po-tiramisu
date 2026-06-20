@@ -51,3 +51,11 @@ htmlcov/
 *.zip
 *.tar.gz
 *.mp4
+
+# UUID files at root
+e7340a14-*
+fd6e13f8-*
+ddc0fbf5-*
+96af8272-*
+2b25dfa4-*
+7101e6df-*
