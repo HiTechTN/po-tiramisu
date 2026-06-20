@@ -94,6 +94,10 @@ po-tiramisu/
 │   │   ├── components/               # Composants React réutilisables
 │   │   ├── lib/                      # API client, store, utils
 │   │   └── types/                    # Types TypeScript
+│   ├── public/                       # Assets statiques (favicon)
+│   ├── .eslintrc.json               # Config ESLint (CI-friendly)
+│   ├── next.config.ts               # Config Next.js (standalone)
+│   ├── next.config.export.ts        # Config export statique (CI)
 │   ├── Dockerfile                    # Build multi-stage
 │   └── package.json
 │
@@ -112,6 +116,9 @@ po-tiramisu/
 │   │       ├── ProfileScreen.tsx     # Profil + actions
 │   │       ├── LoginScreen.tsx       # Connexion
 │   │       └── RegisterScreen.tsx    # Inscription
+│   ├── scripts/                      # Génération d'assets (sharp)
+│   │   └── generate-assets.js        # Génère tous les icons/splash
+│   ├── assets/                       # Icons + splash screen
 │   ├── babel.config.js               # Babel + reanimated plugin
 │   ├── app.json                      # Config Expo
 │   └── package.json
@@ -122,6 +129,7 @@ po-tiramisu/
 │   │   ├── config.py                 # Pydantic Settings
 │   │   ├── database.py               # SQLAlchemy engine
 │   │   ├── security.py               # JWT + bcrypt
+│   │   ├── state.py                  # État partagé (_user_carts)
 │   │   ├── seeds.py                  # Données de démonstration
 │   │   ├── models/                   # SQLAlchemy ORM models
 │   │   ├── schemas/                  # Pydantic schemas (validation)
@@ -172,6 +180,28 @@ docker compose up --build -d
 #    ⚙️  Backend:   http://localhost:8000
 #    📖 API Docs:  http://localhost:8000/docs
 #    🔧 Admin:     http://localhost:3000/admin
+```
+
+### Option 3 : Production
+
+```bash
+# Configurer les secrets GitHub Actions (pour CI/CD automatique) :
+gh secret set SECRET_KEY --body "votre-cle-secrete"
+gh secret set POSTGRES_PASSWORD --body "votre-mot-de-passe-pg"
+gh secret set FLOUCI_API_KEY --body "votre-api-key"
+gh secret set FLOUCI_MERCHANT_ID --body "votre-merchant-id"
+
+# Déclencher une release :
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
+# → Le pipeline CI/CD build les images Docker, APK, et crée la release GitHub
+
+# Ou lancer manuellement :
+make prod
+# ou :
+docker compose -f docker-compose.prod.yml up --build -d
+
+# Accès via Nginx sur http://localhost
 ```
 
 ### Option 2 : Développement Local
@@ -563,7 +593,16 @@ Push sur master/tag v*
 | `docker-build` | Push sur master | Build + push images Docker (GHCR) |
 | `mobile-build` | Tag `v*` | Build APK Android avec Expo + Gradle |
 | `web-export` | Tag `v*` | Export statique pour CDN |
+| `deploy` | Tag `v*` | Déploiement SSH (optionnel) |
 | `release` | Tag `v*` | Création GitHub Release avec tous les artifacts |
+
+### Artifacts de la Release
+
+Chaque release GitHub contient :
+- **APK Android** — `po-tiramisu-android-v{version}.apk`
+- **Export Web** — `po-tiramisu-web-v{version}.zip`
+- **Python Wheel** — `backend/dist/*.whl`
+- **Docker Images** — sur GitHub Container Registry (GHCR)
 
 ### Créer une release
 
@@ -575,6 +614,37 @@ make release
 git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 # → Le pipeline CI/CD se déclenche automatiquement
+```
+
+### Configuration des Secrets GitHub
+
+```bash
+# Secrets requis pour le CI/CD :
+gh secret set SECRET_KEY --body "$(openssl rand -hex 32)"
+gh secret set POSTGRES_PASSWORD --body "$(openssl rand -base64 24)"
+gh secret set FLOUCI_API_KEY --body "votre_api_key"
+gh secret set FLOUCI_MERCHANT_ID --body "votre_merchant_id"
+
+# Secrets optionnels (déploiement SSH) :
+gh secret set DEPLOY_HOST --body "votre-serveur.com"
+gh secret set DEPLOY_USER --body "root"
+gh secret set DEPLOY_SSH_KEY --body "$(cat ~/.ssh/id_rsa)"
+```
+
+### Générer les Assets Mobiles
+
+```bash
+# Installer sharp (requis pour la génération d'images)
+cd mobile && npm install --no-save sharp
+
+# Générer tous les assets (splash, icons, favicon)
+node scripts/generate-assets.js
+
+# Résultat :
+#   assets/splash.png              → 1284x2778 (splash screen)
+#   assets/icon.png                → 1024x1024 (app icon)
+#   assets/favicon.png             → 48x48 (favicon)
+#   assets/android-icon-*.png      → 512x512 (adaptive icons)
 ```
 
 ---
