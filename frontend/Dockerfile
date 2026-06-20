@@ -26,6 +26,8 @@ RUN npm run build
 
 # ── Runtime stage ───────────────────────────────
 FROM node:20-alpine AS runner
+ARG VERSION=dev
+ARG COMMIT=dev
 WORKDIR /app
 
 ENV NODE_ENV=production
