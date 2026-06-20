@@ -462,14 +462,14 @@ ${{ github.actor }}"}
         env:
           LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
         run: |
-          COLOR="#22c55e"
           TITLE="✅ CI/CD pipeline succeeded"
+          TEMPLATE="green"
           if [ "${{ steps.status.outputs.status }}" = "failure" ]; then
-            COLOR="#ef4444"
             TITLE="❌ CI/CD pipeline failed"
+            TEMPLATE="red"
           elif [ "${{ steps.status.outputs.status }}" = "warning" ]; then
-            COLOR="#eab308"
             TITLE="⚠️ CI/CD pipeline completed with warnings"
+            TEMPLATE="yellow"
           fi
 
           curl -sf -X POST "${{ env.LARK_WEBHOOK_URL }}" \
@@ -483,7 +483,7 @@ ${{ github.actor }}"}
                   "tag": "plain_text",
                   "content": "${TITLE}"
                 },
-                "template": "$( [ \"${{ steps.status.outputs.status }}\" = \"success\" ] && echo green || ( [ \"${{ steps.status.outputs.status }}\" = \"failure\" ] && echo red || echo yellow ) )"
+                "template": "${TEMPLATE}"
               },
               "elements": [
                 {
