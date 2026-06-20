@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { productsApi } from '@/lib/api';
 import Layout from '@/components/Layout/Layout';
@@ -8,7 +8,7 @@ import ProductGrid from '@/components/Products/ProductGrid';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import type { Product } from '@/types';
 
-export default function ProductsPage() {
+function ProductsContent() {
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<{ name: string; count: number }[]>([]);
@@ -115,5 +115,13 @@ export default function ProductsPage() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="py-20 text-center text-gray-500">Chargement...</div>}>
+      <ProductsContent />
+    </Suspense>
   );
 }
