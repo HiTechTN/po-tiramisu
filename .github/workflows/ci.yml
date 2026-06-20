@@ -359,7 +359,7 @@ jobs:
             ```
 
   # ──────────────────────────────────────────────
-  # 8. Notify — Slack / Discord
+  # 8. Notify — Slack / Discord / Lark
   # ──────────────────────────────────────────────
   notify:
     if: always()
@@ -455,3 +455,86 @@ ${{ github.actor }}"}
             📝 **Commit:** `${{ github.sha }}`
             👤 **Author:** `${{ github.actor }}`
             🔗 [View Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      # Lark / Feishu notification (uses incoming webhook)
+      - name: Notify Lark
+        if: env.LARK_WEBHOOK_URL != ''
+        env:
+          LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
+        run: |
+          COLOR="#22c55e"
+          TITLE="✅ CI/CD pipeline succeeded"
+          if [ "${{ steps.status.outputs.status }}" = "failure" ]; then
+            COLOR="#ef4444"
+            TITLE="❌ CI/CD pipeline failed"
+          elif [ "${{ steps.status.outputs.status }}" = "warning" ]; then
+            COLOR="#eab308"
+            TITLE="⚠️ CI/CD pipeline completed with warnings"
+          fi
+
+          curl -sf -X POST "${{ env.LARK_WEBHOOK_URL }}" \
+            -H 'Content-Type: application/json' \
+            -d "$(cat <<EOF
+          {
+            "msg_type": "interactive",
+            "card": {
+              "header": {
+                "title": {
+                  "tag": "plain_text",
+                  "content": "${TITLE}"
+                },
+                "template": "$( [ \"${{ steps.status.outputs.status }}\" = \"success\" ] && echo green || ( [ \"${{ steps.status.outputs.status }}\" = \"failure\" ] && echo red || echo yellow ) )"
+              },
+              "elements": [
+                {
+                  "tag": "div",
+                  "fields": [
+                    {
+                      "is_short": true,
+                      "text": {
+                        "tag": "lark_md",
+                        "content": "**Repo:** ${{ github.repository }}"
+                      }
+                    },
+                    {
+                      "is_short": true,
+                      "text": {
+                        "tag": "lark_md",
+                        "content": "**Branch:** ${{ github.ref_name }}"
+                      }
+                    },
+                    {
+                      "is_short": true,
+                      "text": {
+                        "tag": "lark_md",
+                        "content": "**Commit:** ${{ github.sha }}"
+                      }
+                    },
+                    {
+                      "is_short": true,
+                      "text": {
+                        "tag": "lark_md",
+                        "content": "**Author:** ${{ github.actor }}"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "tag": "action",
+                  "actions": [
+                    {
+                      "tag": "button",
+                      "text": {
+                        "tag": "plain_text",
+                        "content": "View Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                      "type": "primary"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+          EOF
+          )"
