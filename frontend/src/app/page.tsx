@@ -34,7 +34,7 @@ export default function HomePage() {
                 Tiramisus <span className="text-brand-600">artisanaux</span> faits avec amour
               </h1>
               <p className="mt-6 max-w-lg text-lg text-gray-600">
-                Découvrez nos tiramisus faits maison avec des ingrédients frais et importés d'Italie.
+                Découvrez nos tiramisus faits maison avec des ingrédients frais et importés d&apos;Italie.
                 Chaque bouchée est une explosion de saveurs authentiques.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">

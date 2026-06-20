@@ -152,7 +152,7 @@ export default function ProductDetailPage() {
               <ul className="space-y-1 text-sm text-gray-600">
                 <li>• Livraison en 24h dans le Grand Tunis</li>
                 <li>• Frais de livraison: 5 DT</li>
-                <li>• Livraison gratuite à partir de 100 DT d'achat</li>
+                <li>• Livraison gratuite à partir de 100 DT d&apos;achat</li>
               </ul>
             </div>
           </div>
