@@ -8,18 +8,9 @@ from ..models.product import Product
 from ..crud.payment import get_promo_by_code, validate_promo_code, apply_promo_code, increment_promo_usage
 import json
 
+from ..state import get_user_cart, clear_user_cart, DELIVERY_FEE
+
 router = APIRouter(prefix="/api/cart", tags=["cart"])
-
-# In-memory cart per user (in production, use Redis)
-_user_carts = {}
-
-DELIVERY_FEE = 5.0
-
-
-def _get_user_cart(user_id: int) -> dict:
-    if user_id not in _user_carts:
-        _user_carts[user_id] = {"items": [], "promo_code": None, "discount": 0}
-    return _user_carts[user_id]
 
 
 def _calculate_totals(cart: dict, db: Session):
@@ -62,7 +53,7 @@ async def get_cart(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    cart = _get_user_cart(current_user.id)
+    cart = get_user_cart(current_user.id)
     cart["user_id"] = current_user.id
     return _calculate_totals(cart, db)
 
@@ -80,7 +71,7 @@ async def add_to_cart(
     if product.quantity_available < item.quantity:
         raise HTTPException(status_code=400, detail="Insufficient stock")
 
-    cart = _get_user_cart(current_user.id)
+    cart = get_user_cart(current_user.id)
     cart["user_id"] = current_user.id
 
     # Check if item already in cart
@@ -100,7 +91,7 @@ async def update_cart_item(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    cart = _get_user_cart(current_user.id)
+    cart = get_user_cart(current_user.id)
     cart["user_id"] = current_user.id
 
     existing = next((i for i in cart["items"] if i["product_id"] == product_id), None)
@@ -121,14 +112,14 @@ async def remove_from_cart(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    cart = _get_user_cart(current_user.id)
+    cart = get_user_cart(current_user.id)
     cart["items"] = [i for i in cart["items"] if i["product_id"] != product_id]
     return None
 
 
 @router.delete("/clear", status_code=status.HTTP_204_NO_CONTENT)
 async def clear_cart(current_user=Depends(get_current_user)):
-    _user_carts[current_user.id] = {"items": [], "promo_code": None, "discount": 0}
+    clear_user_cart(current_user.id)
     return None
 
 
@@ -138,7 +129,7 @@ async def apply_promo(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    cart = _get_user_cart(current_user.id)
+    cart = get_user_cart(current_user.id)
     cart_calc = _calculate_totals(cart, db)
 
     promo, error = validate_promo_code(db, body.promo_code, cart_calc.subtotal_dt)

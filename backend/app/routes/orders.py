@@ -17,15 +17,9 @@ from ..crud.delivery import create_delivery
 from ..models.user import Address
 import json
 
+from ..state import get_user_cart, clear_user_cart
+
 router = APIRouter(prefix="/api/orders", tags=["orders"])
-
-_user_carts = {}
-
-
-def _get_user_cart(user_id: int) -> dict:
-    if user_id not in _user_carts:
-        _user_carts[user_id] = {"items": [], "promo_code": None, "discount": 0}
-    return _user_carts[user_id]
 
 
 @router.post("", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
@@ -42,7 +36,7 @@ async def create_order(
         raise HTTPException(status_code=400, detail="Invalid delivery address")
 
     # Get cart
-    cart = _get_user_cart(current_user.id)
+    cart = get_user_cart(current_user.id)
     if not cart.get("items"):
         raise HTTPException(status_code=400, detail="Cart is empty")
 
@@ -84,7 +78,7 @@ async def create_order(
         db.commit()
 
     # Clear cart
-    _user_carts[current_user.id] = {"items": [], "promo_code": None, "discount": 0}
+    clear_user_cart(current_user.id)
 
     # Build timeline
     timeline = [

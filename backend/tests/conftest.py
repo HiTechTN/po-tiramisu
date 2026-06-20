@@ -57,7 +57,7 @@ def _clear_cart_state():
     """Clear the in-memory cart store and user ref between tests."""
     global _test_user_ref
     _test_user_ref = None
-    from app.routes.cart import _user_carts
+    from app.state import _user_carts
     _user_carts.clear()
     yield
     _test_user_ref = None
