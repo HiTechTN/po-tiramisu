@@ -7,9 +7,15 @@ on:
   pull_request:
     branches: [master, main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/po-tiramisu
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
 
 permissions:
   contents: write
@@ -31,7 +37,15 @@ jobs:
         if: matrix.service == 'backend'
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        if: matrix.service == 'backend'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
 
       - name: Install & test backend
         if: matrix.service == 'backend'
@@ -44,7 +58,7 @@ jobs:
         if: matrix.service == 'frontend'
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -160,7 +174,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -168,14 +182,7 @@ jobs:
         run: |
           cd frontend
           npm ci
-          # Temporarily override next.config for static export
-          cat > next.config.ts << 'EOF'
-          const nextConfig = {
-            output: 'export',
-            images: { unoptimized: true },
-          };
-          export default nextConfig;
-          EOF
+          cp next.config.export.ts next.config.ts
           NEXT_PUBLIC_API_URL=https://api.po-tiramisu.tn npm run build
 
       - name: Zip web export
@@ -189,7 +196,35 @@ jobs:
           retention-days: 30
 
   # ──────────────────────────────────────────────
-  # 5. GitHub Release
+  # 5. Deploy to Production
+  # ──────────────────────────────────────────────
+  deploy:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [docker-build, mobile-build, web-export]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/po-tiramisu
+            git pull origin master
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker image prune -f
+            echo "✅ Deployed ${{ github.ref_name }}"
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        if: ${{ secrets.DEPLOY_HOST != '' }}
+
+  # ──────────────────────────────────────────────
+  # 6. GitHub Release
   # ──────────────────────────────────────────────
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
@@ -199,6 +234,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
