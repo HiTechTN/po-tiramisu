@@ -41,7 +41,7 @@ Plateforme e-commerce complète pour la vente de **tiramisus artisanaux tunisien
 │                                                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │  Web (Next.js)│  │ Mobile (Expo)│  │ Admin Dashboard  │  │
-│  │  Port: 3000   │  │  Android/iOS │  │ (via web)        │  │
+│  │  Port: 80*    │  │  Android/iOS │  │ (via web)        │  │
 │  └──────┬───────┘  └──────┬───────┘  └────────┬─────────┘  │
 │         │                 │                    │             │
 └─────────┼─────────────────┼────────────────────┼─────────────┘
@@ -54,6 +54,7 @@ Plateforme e-commerce complète pour la vente de **tiramisus artisanaux tunisien
 │              ┌───────────┴───────────┐                      │
 │              │ /api/* → Backend:8000 │                      │
 │              │ /*     → Frontend:3000│                      │
+│              │ *Production: Nginx expose tout sur port 80  │
 └──────────────┼───────────────────────┼──────────────────────┘
                │                       │
 ┌──────────────▼───────────────────────▼──────────────────────┐
@@ -225,16 +226,6 @@ npm run dev                     # → http://localhost:3000
 cd mobile
 npm install
 npx expo start                  # → Scan QR code
-```
-
-### Option 3 : Production
-
-```bash
-make prod
-# ou :
-docker compose -f docker-compose.prod.yml up --build -d
-
-# Accès via Nginx sur http://localhost
 ```
 
 ---
