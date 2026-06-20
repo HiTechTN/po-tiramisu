@@ -200,7 +200,8 @@ jobs:
             COMMIT=${{ github.sha }}
 
   # ──────────────────────────────────────────────
-  # 3. Build Mobile APK
+  # ──────────────────────────────────────────────
+  # 4. Build Mobile APK
   # ──────────────────────────────────────────────
   mobile-build:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
@@ -444,9 +445,8 @@ ${{ github.actor }}"}
         if: env.DISCORD_WEBHOOK_URL != ''
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         uses: Ilshidur/action-discord@0.3.2
-        env:
-          DISCORD_WEBHOOK: ${{ env.DISCORD_WEBHOOK_URL }}
         with:
           args: |
             ${{ steps.status.outputs.emoji }} **${{ steps.status.outputs.text }}**
