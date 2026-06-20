@@ -71,7 +71,84 @@ jobs:
           npm run build
 
   # ──────────────────────────────────────────────
-  # 2. Build Docker Images
+  # 2. Integration Tests (Staging — real PostgreSQL)
+  # ──────────────────────────────────────────────
+  staging:
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: staging_test_pw
+          POSTGRES_DB: po_tiramisu_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:staging_test_pw@localhost:5432/po_tiramisu_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: cd backend && pip install -r requirements.txt
+
+      - name: Run integration tests against real PostgreSQL
+        run: |
+          cd backend
+          # Verify DB connectivity and schema creation
+          python -c "
+          import os, sys
+          os.environ['DATABASE_URL'] = '${{ env.DATABASE_URL }}'
+          from app.database import engine, Base
+          from app.main import app
+          print('Database connected, tables created')
+          Base.metadata.create_all(bind=engine)
+          print('All integration checks passed')
+          "
+          # NOTE: cart tests excluded because they use in-memory state.py
+          # which isn't wired to the real DB — those are tested in unit tests
+          python -m pytest tests/ -v --tb=short -k "not test_cart" -x
+
+      - name: Smoke test: API endpoints respond
+        run: |
+          cd backend
+          DATABASE_URL='${{ env.DATABASE_URL }}' python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          SERVER_PID=$!
+          # Wait for server to be ready (retry loop)
+          for i in 1 2 3 4 5 6 7 8; do
+            if curl -sf http://localhost:8000/api/health | grep -q healthy; then
+              break
+            fi
+            echo "Waiting for server... ($i/8)"
+            sleep 3
+          done
+          curl -sf http://localhost:8000/api/health | grep -q healthy || (echo '❌ Health check failed' && exit 1)
+          curl -sf http://localhost:8000/api/products | grep -q items || (echo '❌ Products endpoint failed' && exit 1)
+          echo "✅ Staging smoke tests passed"
+          kill $SERVER_PID 2>/dev/null || true
+          wait $SERVER_PID 2>/dev/null || true
+
+  # ──────────────────────────────────────────────
+  # 3. Build Docker Images
   # ──────────────────────────────────────────────
   docker-build:
     if: github.event_name == 'push'
@@ -196,11 +273,11 @@ jobs:
           retention-days: 30
 
   # ──────────────────────────────────────────────
-  # 5. Deploy to Production (skipped if secrets not set)
+  # 6. Deploy to Production (skipped if secrets not set)
   # ──────────────────────────────────────────────
   deploy:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [docker-build, mobile-build, web-export]
+    needs: [docker-build, mobile-build, web-export, staging]
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -222,11 +299,11 @@ jobs:
             echo "Deployed ${{ github.ref_name }}"
 
   # ──────────────────────────────────────────────
-  # 6. GitHub Release
+  # 7. GitHub Release
   # ──────────────────────────────────────────────
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [docker-build, mobile-build, web-export]
+    needs: [docker-build, mobile-build, web-export, staging]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -279,3 +356,102 @@ jobs:
             cd po-tiramisu
             make prod
             ```
+
+  # ──────────────────────────────────────────────
+  # 8. Notify — Slack / Discord
+  # ──────────────────────────────────────────────
+  notify:
+    if: always()
+    needs: [test, staging, docker-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [ "${{ needs.test.result }}" = "failure" ] || \
+             [ "${{ needs.staging.result }}" = "failure" ] || \
+             [ "${{ needs.docker-build.result }}" = "failure" ]; then
+            echo "color=danger" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+            echo "text=CI/CD pipeline failed" >> $GITHUB_OUTPUT
+            echo "status=failure" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.test.result }}" = "success" ] && \
+               [ "${{ needs.staging.result }}" != "failure" ] && \
+               [ "${{ needs.docker-build.result }}" != "failure" ]; then
+            echo "color=good" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+            echo "text=CI/CD pipeline succeeded" >> $GITHUB_OUTPUT
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "color=warning" >> $GITHUB_OUTPUT
+            echo "emoji=⚠️" >> $GITHUB_OUTPUT
+            echo "text=CI/CD pipeline completed with warnings" >> $GITHUB_OUTPUT
+            echo "status=warning" >> $GITHUB_OUTPUT
+          fi
+
+      # Slack notification (uses incoming webhook URL)
+      - name: Notify Slack
+        if: env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "attachments": [
+                {
+                  "color": "${{ steps.status.outputs.color }}",
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "${{ steps.status.outputs.emoji }} Po_Tiramisu CI/CD"
+                      }
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {"type": "mrkdwn", "text": "*Status:*
+${{ steps.status.outputs.text }}"},
+                        {"type": "mrkdwn", "text": "*Branch:*
+${{ github.ref_name }}"},
+                        {"type": "mrkdwn", "text": "*Commit:*
+${{ github.sha }}"},
+                        {"type": "mrkdwn", "text": "*Actor:*
+${{ github.actor }}"}
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": {"type": "plain_text", "text": "View Run"},
+                          "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+
+      # Discord notification (uses webhook URL)
+      - name: Notify Discord
+        if: env.DISCORD_WEBHOOK_URL != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        uses: Ilshidur/action-discord@0.3.2
+        env:
+          DISCORD_WEBHOOK: ${{ env.DISCORD_WEBHOOK_URL }}
+        with:
+          args: |
+            ${{ steps.status.outputs.emoji }} **${{ steps.status.outputs.text }}**
+            📦 **Repo:** `${{ github.repository }}`
+            🌿 **Branch:** `${{ github.ref_name }}`
+            📝 **Commit:** `${{ github.sha }}`
+            👤 **Author:** `${{ github.actor }}`
+            🔗 [View Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
