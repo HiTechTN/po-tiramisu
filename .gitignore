@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Python
+venv/
+.venv/
+backend-env/
+*.db
+*.sqlite3
+
+# Next.js
+.next/
+out/
+.vercel/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Misc
+*.zip
+*.tar.gz
+*.mp4
