@@ -120,15 +120,14 @@ jobs:
         run: |
           cd backend
           # Verify DB connectivity and schema creation
-          python -c "
-          import os, sys
+          python - <<'PY'
+          import os
           os.environ['DATABASE_URL'] = '${{ env.DATABASE_URL }}'
           from app.database import engine, Base
-          from app.main import app
           print('Database connected, tables created')
           Base.metadata.create_all(bind=engine)
           print('All integration checks passed')
-          "
+          PY
           # NOTE: cart tests excluded because they use in-memory state.py
           # which isn't wired to the real DB — those are tested in unit tests
           python -m pytest tests/ -v --tb=short -k "not test_cart" -x
@@ -136,18 +135,23 @@ jobs:
       - name: Smoke test: API endpoints respond
         run: |
           cd backend
-          DATABASE_URL='${{ env.DATABASE_URL }}' python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          DATABASE_URL='${{ env.DATABASE_URL }}' uvicorn app.main:app --host 0.0.0.0 --port 8000 &
           SERVER_PID=$!
           # Wait for server to be ready (retry loop)
-          for i in 1 2 3 4 5 6 7 8; do
+          for i in $(seq 1 8); do
             if curl -sf http://localhost:8000/api/health | grep -q healthy; then
               break
             fi
             echo "Waiting for server... ($i/8)"
             sleep 3
           done
+          # Check health endpoint
           curl -sf http://localhost:8000/api/health | grep -q healthy || (echo '❌ Health check failed' && exit 1)
+          # Check products endpoint (expects JSON with 'items')
           curl -sf http://localhost:8000/api/products | grep -q items || (echo '❌ Products endpoint failed' && exit 1)
+          echo "✅ Staging smoke tests passed"
+          kill $SERVER_PID 2>/dev/null || true
+          wait $SERVER_PID 2>/dev/null || true
           echo "✅ Staging smoke tests passed"
           kill $SERVER_PID 2>/dev/null || true
           wait $SERVER_PID 2>/dev/null || true
