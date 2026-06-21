@@ -91,8 +91,13 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
     env:
       DATABASE_URL: postgresql://postgres:staging_test_pw@localhost:5432/po_tiramisu_test
+      REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
 
@@ -461,6 +466,7 @@ ${{ github.actor }}"}
         if: env.LARK_WEBHOOK_URL != ''
         env:
           LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
+        continue-on-error: true
         run: |
           TITLE="✅ CI/CD pipeline succeeded"
           TEMPLATE="green"
