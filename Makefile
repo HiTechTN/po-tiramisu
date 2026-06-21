@@ -119,7 +119,18 @@ lint: ## Lint all code
 # ──────────────────────────────────────────────
 # Release
 # ──────────────────────────────────────────────
-release: ## Create a release (builds Docker + mobile APK + tags)
+# ── Release — Build, Tag, and Publish to GitHub ─────────────────────
+.PHONY: release release-version
+
+release-version ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+
+release:
+	@echo "🚀 Building release $(release-version)..."
+	git add -A
+	git commit -m "chore: prepare release $(release-version)" || true
+	git tag -f "v$(release-version)"
+	git push origin "v$(release-version)" --force
+	@echo "✅ Release trigger pushed. GitHub Actions will build Docker images, APK, and Web ZIP." ## Create a release (builds Docker + mobile APK + tags)
 	@echo "🚀 Building release $(VERSION)..."
 	$(MAKE) docker-build
 	$(MAKE) build-backend
