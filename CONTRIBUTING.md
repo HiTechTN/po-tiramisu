@@ -61,9 +61,13 @@ cd po-tiramisu
 git remote add upstream https://github.com/HiTechTN/po-tiramisu.git
 
 # 4. Lancer le projet en développement
+#    Assurez-vous que Docker est en cours d'exécution !
 make dev
 
-# 5. Vérifier que tout fonctionne
+# 5. Installer les dépendances mobiles (optionnel)
+cd mobile && npm install && npx expo install babel-preset-expo
+
+# 6. Vérifier que tout fonctionne
 #    → Frontend: http://localhost:3000
 #    → Backend:  http://localhost:8000/docs
 ```
@@ -188,6 +192,8 @@ cd mobile && npx expo lint
 cd backend
 python -m pytest tests/ -v --tb=short
 ```
+
+> 💡 Les tests utilisent SQLite in-memory pour l'isolation — pas besoin de PostgreSQL local.
 
 **Minimum requis :**
 - Tous les tests existants doivent passer
