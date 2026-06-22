@@ -3,6 +3,7 @@ export const theme = {
   cardBg: '#1A1412',
   cardBorder: '#3A2E2A',
   primary: '#C28859',
+  accent: '#C28859',
   textMain: '#FDFBF7',
   textMuted: '#A89F9A',
 } as const;
