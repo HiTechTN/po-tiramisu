@@ -28,7 +28,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build -w packages/shared
-      - run: npm test
+      - run: npm test -w packages/shared
 
   # ──────────────────────────────────────────────
   # Web: typecheck + tests + lint (no build)
