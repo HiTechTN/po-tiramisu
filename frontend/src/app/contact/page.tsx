@@ -3,19 +3,26 @@
 import { useState } from 'react';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import Layout from '@/components/Layout/Layout';
+import { api } from '@/lib/api';
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate send (no backend endpoint yet)
-    await new Promise(r => setTimeout(r, 1000));
-    setSubmitted(true);
-    setLoading(false);
+    setError('');
+    try {
+      await api.post('/api/contact', form);
+      setSubmitted(true);
+    } catch {
+      setError('Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -120,6 +127,11 @@ export default function ContactPage() {
                     placeholder="Décrivez votre demande..."
                   />
                 </div>
+                {error && (
+                  <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
                 <button type="submit" disabled={loading} className="btn-primary w-full">
                   <Send className="mr-2 h-4 w-4" />
                   {loading ? 'Envoi...' : 'Envoyer le message'}

@@ -104,7 +104,7 @@ async def health_check():
 
 
 # Register all routers
-from .routes import auth, products, cart, orders, payments, deliveries, reviews, users, admin
+from .routes import auth, products, cart, orders, payments, deliveries, reviews, users, admin, contact
 
 app.include_router(auth.router)
 app.include_router(products.router)
@@ -115,3 +115,4 @@ app.include_router(deliveries.router)
 app.include_router(reviews.router)
 app.include_router(users.router)
 app.include_router(admin.router)
+app.include_router(contact.router)

@@ -8,6 +8,7 @@ instead of being sent, so the application works in development.
 import smtplib
 import asyncio
 import logging
+from html import escape
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
@@ -42,6 +43,36 @@ def _send_email_sync(to_email: str, subject: str, html_body: str, text_body: Opt
         logger.info("Email sent to %s: %s", to_email, subject)
     except Exception as exc:
         logger.error("Failed to send email to %s: %s", to_email, exc)
+
+
+# ── Contact Form Email ─────────────────────────────────────────
+
+def send_contact_email(name: str, email: str, subject: str, message: str):
+    """Send a contact form message to the admin email."""
+    settings = get_settings()
+    admin_email = settings.SMTP_USER or "contact@po-tiramisu.tn"
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #c94a39; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0;">🍰 Nouveau message de contact</h1>
+        </div>
+        <div style="padding: 30px; background: #f9fafb; border: 1px solid #e5e7eb;">
+            <h2 style="color: #111827;">{escape(subject)}</h2>
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
+                <p style="margin: 5px 0; color: #6b7280;"><strong>Nom:</strong> {escape(name)}</p>
+                <p style="margin: 5px 0; color: #6b7280;"><strong>Email:</strong> <a href="mailto:{escape(email)}">{escape(email)}</a></p>
+            </div>
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
+                <p style="margin: 0; color: #374151; white-space: pre-wrap;">{escape(message)}</p>
+            </div>
+            <p style="color: #9ca3af; font-size: 12px; margin-top: 20px;">Message envoyé via le formulaire de contact de po-tiramisu.tn</p>
+        </div>
+    </div>
+    """
+    asyncio.get_running_loop().run_in_executor(
+        None, _send_email_sync, admin_email, f"[Contact] {subject} — {name}", html
+    )
 
 
 # ── Order Emails ────────────────────────────────────────────────
