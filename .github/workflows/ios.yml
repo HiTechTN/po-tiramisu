@@ -24,11 +24,11 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      - name: Build iOS app
+      - name: Build iOS app (unsigned)
         run: |
           cd ios/App
-          xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -archivePath build/App.xcarchive archive
-          xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -exportArchive -archivePath build/App.xcarchive -exportOptionsPlist ../../exportOptions.plist -exportPath build/ipa
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -archivePath build/App.xcarchive archive CODE_SIGNING_ALLOWED=NO
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -exportArchive -archivePath build/App.xcarchive -exportOptionsPlist ../../exportOptions.plist -exportPath build/ipa CODE_SIGNING_ALLOWED=NO
         working-directory: apps/web
       - name: Upload IPA
         uses: actions/upload-artifact@v4
