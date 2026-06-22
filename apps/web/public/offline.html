@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Po Tiramisu - Offline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #110c08;
+      color: #fdfaf6;
+      font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    /* Subtle radial glow behind the card */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 600px;
+      height: 600px;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(194,136,89,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      padding: 3rem 2rem;
+      max-width: 420px;
+      width: 100%;
+    }
+
+    /* Wifi-off icon as SVG inline */
+    .icon-wrapper {
+      width: 96px;
+      height: 96px;
+      margin: 0 auto 2rem;
+      background: rgba(194,136,89,0.1);
+      border: 2px solid rgba(194,136,89,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .icon-wrapper svg {
+      width: 44px;
+      height: 44px;
+      color: #c28859;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(194,136,89,0.15); }
+      50% { box-shadow: 0 0 0 16px rgba(194,136,89,0); }
+    }
+
+    .brand {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #c28859;
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #fdfaf6;
+      margin-bottom: 0.75rem;
+      line-height: 1.2;
+    }
+
+    p {
+      color: #a89f9a;
+      font-size: 1rem;
+      line-height: 1.6;
+      max-width: 320px;
+      margin: 0 auto 2rem;
+    }
+
+    .retry-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(194,136,89,0.15);
+      border: 1.5px solid rgba(194,136,89,0.4);
+      color: #c28859;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.85rem 2rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-decoration: none;
+    }
+
+    .retry-btn:hover {
+      background: rgba(194,136,89,0.25);
+      border-color: #c28859;
+      box-shadow: 0 0 24px rgba(194,136,89,0.15);
+      transform: translateY(-1px);
+    }
+
+    .retry-btn:active {
+      transform: translateY(0);
+    }
+
+    .retry-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .footer {
+      margin-top: 3rem;
+      font-size: 0.8rem;
+      color: rgba(168,159,154,0.5);
+    }
+
+    /* Fade-in on load */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .container > * {
+      animation: fadeUp 0.6s ease-out both;
+    }
+
+    .container > *:nth-child(1) { animation-delay: 0s; }
+    .container > *:nth-child(2) { animation-delay: 0.08s; }
+    .container > *:nth-child(3) { animation-delay: 0.16s; }
+    .container > *:nth-child(4) { animation-delay: 0.24s; }
+    .container > *:nth-child(5) { animation-delay: 0.32s; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon-wrapper">
+      <!-- Wifi-off icon (Lucide / Feather style) -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="2" y1="2" x2="22" y2="22"/>
+        <path d="M8.5 16.5a5 5 0 0 1 7 0"/>
+        <path d="M2 8.82a15 15 0 0 1 4.17-2.65"/>
+        <path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/>
+        <path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/>
+        <path d="M5 12.55a10 10 0 0 1 5.17-2.39"/>
+        <line x1="12" y1="20" x2="12.01" y2="20"/>
+      </svg>
+    </div>
+
+    <div class="brand">Po Tiramisu</div>
+
+    <h1>You're Offline</h1>
+
+    <p>It looks like you've lost your connection. Check your network and try again — our menu will be here when you're back!</p>
+
+    <button class="retry-btn" onclick="location.reload()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Try Again
+    </button>
+
+    <div class="footer">Sweetness takes time · Come back soon</div>
+  </div>
+</body>
+</html>

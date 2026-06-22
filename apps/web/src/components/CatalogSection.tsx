@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Product } from '@potiramisu/shared';
 import { supabase } from '@/lib/supabase';
 import { ProductCard } from './ProductCard';
+import { CatalogSkeleton } from './skeletons/CatalogSkeleton';
 
 const FALLBACK_PRODUCTS: Product[] = [
   {
@@ -54,11 +55,7 @@ export function CatalogSection() {
           <h2 className="text-3xl font-bold text-white">Our Menu</h2>
           <div className="h-px bg-white/10 flex-1 ml-6"></div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="glass-card h-80 animate-pulse" />
-          ))}
-        </div>
+        <CatalogSkeleton />
       </section>
     );
   }

@@ -1,5 +1,10 @@
 # Po Tiramisu - E-commerce & Logistics OS
 
+
+[![iOS Build](https://github.com/HiTechTN/po-tiramisu/actions/workflows/ios.yml/badge.svg)](https://github.com/HiTechTN/po-tiramisu/actions/workflows/ios.yml)
+[![Android Build](https://github.com/HiTechTN/po-tiramisu/actions/workflows/mobile.yml/badge.svg)](https://github.com/HiTechTN/po-tiramisu/actions/workflows/mobile.yml)
+[![Web Deploy](https://github.com/HiTechTN/po-tiramisu/actions/workflows/nextjs.yml/badge.svg)](https://github.com/HiTechTN/po-tiramisu/actions/workflows/nextjs.yml)
+[![Admin CI](https://github.com/HiTechTN/po-tiramisu/actions/workflows/admin.yml/badge.svg)](https://github.com/HiTechTN/po-tiramisu/actions/workflows/admin.yml)
 Bienvenue dans le dépôt officiel de **Po Tiramisu**, une plateforme complète d'e-commerce et de logistique spécialement conçue pour la vente de tiramisus artisanaux.
 
 Le projet est divisé en plusieurs applications :

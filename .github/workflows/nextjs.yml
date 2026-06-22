@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           
       - name: Setup Pages
@@ -46,6 +46,12 @@ jobs:
         
       - name: Build shared package
         run: npm run build -w packages/shared
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run lint
+        run: npm run lint
 
       - name: Build with Next.js
         run: npm run build -w apps/web

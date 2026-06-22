@@ -5,10 +5,16 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "license": "MIT",
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
   "devDependencies": {
-    "typescript": "^5"
+    "typescript": "^6",
+    "vitest": "^4.1.9"
   }
 }

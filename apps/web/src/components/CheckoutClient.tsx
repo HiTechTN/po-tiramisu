@@ -32,6 +32,7 @@ export function CheckoutClient() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string>('');
+  const [grandTotal, setGrandTotal] = useState<number>(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const selectedZone = zones.find(z => z.id === formData.zoneId);
@@ -99,31 +100,26 @@ export function CheckoutClient() {
     setSubmitError(null);
 
     try {
-      const { data: orderData, error: orderError } = await supabase.from('orders').insert({
-        customer_name: formData.name,
-        customer_phone: formData.phone,
-        customer_address: formData.address,
-        delivery_zone_id: formData.zoneId,
-        total_amount: finalTotal,
-        delivery_fee: deliveryFee,
-        delivery_date: selectedDate,
-        status: 'pending'
-      }).select().single();
+      const payload = {
+        p_customer_name: formData.name,
+        p_customer_phone: formData.phone,
+        p_customer_address: formData.address,
+        p_delivery_zone_id: formData.zoneId,
+        p_delivery_date: selectedDate,
+        p_items: items.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+        })),
+      };
 
-      if (orderError) throw new Error(orderError.message);
-      if (!orderData) throw new Error('Failed to create order');
+      const { data, error } = await supabase.rpc('create_order', payload);
 
-      const orderItems = items.map(item => ({
-        order_id: orderData.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.price
-      }));
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error('No response from server');
+      if (data.error) throw new Error(data.error);
 
-      const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-      if (itemsError) throw new Error(itemsError.message);
-
-      setOrderId(orderData.id);
+      setOrderId(data.order_id);
+      setGrandTotal(Number(data.grand_total));
       clearCart();
       handleSetStep(4);
     } catch (error) {
@@ -320,9 +316,13 @@ export function CheckoutClient() {
             <CheckCircle2 className="mx-auto h-24 w-24 text-primary mb-8 animate-[scale-up_0.5s_ease-out]" />
             <h2 className="text-4xl font-bold text-white mb-4">Order Confirmed!</h2>
             <p className="text-white/70 mb-8 text-lg">Thank you for your order. We are preparing it with love.</p>
-            <div className="bg-black/30 border border-white/10 rounded-2xl p-6 inline-block mb-10">
+            <div className="bg-black/30 border border-white/10 rounded-2xl p-6 inline-block mb-6">
               <p className="text-sm text-white/50 mb-2">Order Reference</p>
               <p className="text-3xl font-mono text-white font-bold tracking-wider">{orderId.split('-')[0].toUpperCase()}</p>
+            </div>
+            <div className="bg-black/30 border border-white/10 rounded-2xl p-6 inline-block mb-10">
+              <p className="text-sm text-white/50 mb-2">Total to Pay (COD)</p>
+              <p className="text-3xl font-bold text-primary">{grandTotal.toFixed(2)} TND</p>
             </div>
             <br />
             <Link href="/" className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold py-4 px-10 rounded-xl transition-colors inline-block">

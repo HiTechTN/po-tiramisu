@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "build:android": "CAPACITOR_BUILD=1 next build && node scripts/relativize-paths.mjs && npx cap sync android",
+    "build:ios": "CAPACITOR_BUILD=1 next build && node scripts/relativize-paths.mjs && npx cap sync ios",
+    "build:ios:icons": "bash scripts/build-ios-icons.sh",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -13,20 +15,24 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@capacitor/core": "^8.4.0",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@fontsource/outfit": "^5.2.8",
     "@potiramisu/shared": "^1.0.0",
     "@supabase/supabase-js": "^2.108.2",
     "lucide-react": "^1.21.0",
     "next": "16.2.9",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@capacitor/android": "^8.4.0",
-    "@capacitor/cli": "^8.4.0",
-    "@capacitor/ios": "^8.4.0",
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
@@ -39,7 +45,7 @@
     "eslint-config-next": "16.2.9",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "typescript": "^6",
     "vitest": "^4.1.9"
   }
 }

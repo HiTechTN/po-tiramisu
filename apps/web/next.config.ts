@@ -5,9 +5,12 @@ const nextConfig: NextConfig = {
   // Do not use basePath when building for Capacitor native apps
   basePath: process.env.CAPACITOR_BUILD === '1' ? undefined : '/po-tiramisu',
   images: {
-    unoptimized: true,
+    // Enable image optimization for web; Capacitor builds use static export
+    unoptimized: process.env.CAPACITOR_BUILD === '1',
+    formats: ['image/avif', 'image/webp'],
   },
-  /* config options here */
+  poweredByHeader: false,
+  reactStrictMode: true,
 };
 
 export default nextConfig;

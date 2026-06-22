@@ -1,12 +1,56 @@
+# Dependencies
 node_modules/
+
+# Environment
 .env
 .env.local
+.env.*.local
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Next.js
 apps/web/.next/
 apps/web/out/
+
+# Expo / Admin
 apps/admin/.expo/
 apps/admin/dist/
+
+# Shared package build
 packages/shared/dist/
+
+# Android build artifacts
 *.apk
+*.aab
 *.zip
 apps/web/android/app/build/
+apps/web/android/.gradle/
+apps/web/android/build/
+
+# iOS build artifacts
+apps/web/ios/build/
+apps/web/ios/App/Pods/
+*.xcworkspace/xcuserdata/
+DerivedData/
+
+# Capacitor
+apps/web/android/capacitor-*
+apps/web/ios/App/App/capacitor-*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Supabase local
+supabase/.temp/
+supabase/.env
