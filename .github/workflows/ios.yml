@@ -18,22 +18,17 @@ jobs:
         run: npm ci
       - name: Build shared package
         run: npm run build -w packages/shared
-      - name: Setup CocoaPods
-        run: sudo gem install cocoapods
       - name: Build web + Capacitor sync
         run: npm run build:ios
         working-directory: apps/web
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      - name: Install CocoaPods
-        run: cd ios/App && pod install
-        working-directory: apps/web
       - name: Build iOS app
         run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath build/App.xcarchive archive
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -exportArchive -archivePath build/App.xcarchive -exportOptionsPlist ../../exportOptions.plist -exportPath build/ipa
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -archivePath build/App.xcarchive archive
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -exportArchive -archivePath build/App.xcarchive -exportOptionsPlist ../../exportOptions.plist -exportPath build/ipa
         working-directory: apps/web
       - name: Upload IPA
         uses: actions/upload-artifact@v4
