@@ -152,9 +152,6 @@ jobs:
           echo "✅ Staging smoke tests passed"
           kill $SERVER_PID 2>/dev/null || true
           wait $SERVER_PID 2>/dev/null || true
-          echo "✅ Staging smoke tests passed"
-          kill $SERVER_PID 2>/dev/null || true
-          wait $SERVER_PID 2>/dev/null || true
 
   # ──────────────────────────────────────────────
   # 3. Build Docker Images
