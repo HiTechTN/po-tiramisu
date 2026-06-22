@@ -20,7 +20,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [setUser, setLoading, logout]);
 
   return (
     <div className="flex min-h-screen flex-col">

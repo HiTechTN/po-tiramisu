@@ -16,5 +16,4 @@ aioredis==2.0.1
 httpx==0.27.2
 python-dateutil==2.9.0
 pytest==8.3.3
-httpx==0.27.2
-slowapi
+slowapi==0.1.9

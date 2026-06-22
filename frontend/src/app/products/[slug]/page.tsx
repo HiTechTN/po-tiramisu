@@ -25,13 +25,9 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (!params.slug) return;
-    Promise.all([
-      productsApi.get(params.slug as string),
-      productsApi.getReviews(parseInt(params.slug as string) || 0),
-    ])
-      .then(([prodRes, revRes]) => {
+    productsApi.get(params.slug as string)
+      .then(prodRes => {
         setProduct(prodRes.data);
-        // Try fetching reviews by product id
         productsApi.getReviews(prodRes.data.id).then(r => setReviews(r.data)).catch(() => {});
       })
       .catch(() => setError('Produit non trouvé'))

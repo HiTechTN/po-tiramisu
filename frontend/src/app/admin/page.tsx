@@ -22,7 +22,7 @@ export default function AdminDashboardPage() {
       .then(res => setDashboard(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, router]);
 
   if (loading) return <Layout><div className="py-20 text-center text-gray-500">Chargement...</div></Layout>;
   if (!dashboard) return <Layout><div className="py-20 text-center text-red-500">Erreur de chargement</div></Layout>;

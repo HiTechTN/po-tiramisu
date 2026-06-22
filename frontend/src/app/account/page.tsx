@@ -36,7 +36,7 @@ export default function AccountPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, router]);
 
   const saveProfile = async () => {
     setSaving(true);

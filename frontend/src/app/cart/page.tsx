@@ -25,7 +25,7 @@ export default function CartPage() {
       .then(res => setCart(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, router, setCart]);
 
   const updateQuantity = async (productId: number, qty: number, productName: string) => {
     if (qty < 1) {

@@ -49,6 +49,7 @@ export default function OrderDetailPage() {
         .catch(() => {})
         .finally(() => setLoading(false));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId, isAuthenticated]);
 
   if (loading) return <Layout><div className="py-20"><LoadingSpinner size="lg" /></div></Layout>;

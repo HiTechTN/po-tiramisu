@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -19,6 +20,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # CORS
@@ -49,8 +51,8 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     logger.info("Starting Po_Tiramisu API...")
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
@@ -59,6 +61,8 @@ async def startup_event():
     finally:
         db.close()
     logger.info("Database initialized and seeded.")
+    yield
+    logger.info("Shutting down Po_Tiramisu API...")
 
 
 @app.get("/")

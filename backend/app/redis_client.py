@@ -1,7 +1,7 @@
 import aioredis
 import json
 from typing import Any, Dict
-from ..config import get_settings
+from .config import get_settings
 
 # ── Redis Client Wrapper ───────────────────────────────────────
 # This module provides async helpers to persist the shopping‑cart in

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Package, Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { formatPrice } from '@/lib/utils';
@@ -20,6 +20,7 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'admin') { router.push('/login'); return; }
     loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   const loadOrders = () => {

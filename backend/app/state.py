@@ -1,25 +1,14 @@
 """
 Shared in-memory state for the application.
 
-In production, this should be replaced with Redis or a database-backed store.
+In production, replace the in-memory dict with Redis (see redis_client.py).
 For now, this module ensures all routes share the same cart data.
 """
 
-# In-memory cart per user (user_id -> cart dict)
-# Cart storage will now use Redis instead of in-memory dictionary.
-# The Redis key pattern is ``cart:{user_id}``. The value will be a JSON string representing the cart structure.
-# Example value: {
-#   "items": [...],
-#   "promo_code": null,
-#   "discount": 0.0
-# }
-# This module provides helper functions to interact with Redis.
-
-# Import the Redis client lazily to avoid creating a connection at import time.
-from .redis_client import get_redis_client
-
-
 DELIVERY_FEE = 5.0
+
+# In-memory cart per user (user_id -> cart dict)
+_user_carts: dict[int, dict] = {}
 
 
 def get_user_cart(user_id: int) -> dict:

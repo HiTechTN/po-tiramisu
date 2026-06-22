@@ -12,7 +12,7 @@ import type { Address, Cart } from '@/types';
 export default function CheckoutPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
-  const cart = useCartStore();
+  const { items, subtotal, deliveryFee, discount, total, setCart, clearCart } = useCartStore();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState('flouci');
@@ -28,13 +28,13 @@ export default function CheckoutPage() {
       usersApi.getAddresses(),
     ])
       .then(([cartRes, addrRes]) => {
-        cart.setCart(cartRes.data);
+        setCart(cartRes.data);
         setAddresses(addrRes.data);
         if (addrRes.data.length) setSelectedAddress(addrRes.data[0].id);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, router, setCart]);
 
   const handleSubmit = async () => {
     if (!selectedAddress) return;
@@ -66,7 +66,7 @@ export default function CheckoutPage() {
         }
       }
 
-      cart.clearCart();
+      clearCart();
       router.push(`/orders/${res.data.id}?success=true`);
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Erreur lors de la commande');
@@ -77,7 +77,7 @@ export default function CheckoutPage() {
 
   if (loading) return <Layout><div className="py-20 text-center text-gray-500">Chargement...</div></Layout>;
 
-  if (!cart.items.length) {
+  if (!items.length) {
     router.push('/cart');
     return null;
   }
@@ -229,7 +229,7 @@ export default function CheckoutPage() {
                 <div className="mt-6 flex gap-3">
                   <button onClick={() => setStep(2)} className="btn-secondary flex-1">Retour</button>
                   <button onClick={handleSubmit} disabled={submitting} className="btn-primary flex-1">
-                    {submitting ? 'Traitement...' : `Confirmer & Payer ${formatPrice(cart.total)}`}
+                    {submitting ? 'Traitement...' : `Confirmer & Payer ${formatPrice(total)}`}
                   </button>
                 </div>
               </div>
@@ -241,17 +241,17 @@ export default function CheckoutPage() {
             <div className="card p-6 sticky top-24">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Récapitulatif</h3>
               <div className="space-y-3">
-                {cart.items.map(item => (
+                {items.map(item => (
                   <div key={item.product_id} className="flex justify-between text-sm">
                     <span className="text-gray-600 truncate flex-1 mr-2">{item.product_name} × {item.quantity}</span>
                     <span className="font-medium whitespace-nowrap">{formatPrice(item.total_price_dt)}</span>
                   </div>
                 ))}
                 <div className="border-t border-gray-200 pt-3 space-y-2">
-                  <div className="flex justify-between text-sm"><span className="text-gray-500">Sous-total</span><span>{formatPrice(cart.subtotal)}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-gray-500">Livraison</span><span>{formatPrice(cart.deliveryFee)}</span></div>
-                  {cart.discount > 0 && <div className="flex justify-between text-sm text-green-600"><span>Réduction</span><span>-{formatPrice(cart.discount)}</span></div>}
-                  <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-lg"><span>Total</span><span className="text-brand-700">{formatPrice(cart.total)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-500">Sous-total</span><span>{formatPrice(subtotal)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-500">Livraison</span><span>{formatPrice(deliveryFee)}</span></div>
+                  {discount > 0 && <div className="flex justify-between text-sm text-green-600"><span>Réduction</span><span>-{formatPrice(discount)}</span></div>}
+                  <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-lg"><span>Total</span><span className="text-brand-700">{formatPrice(total)}</span></div>
                 </div>
               </div>
             </div>

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..security import get_current_user
+from ..security import get_current_admin
 from ..schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from ..schemas.order import OrderStatusUpdate, OrderListResponse, OrderResponse, OrderItemResponse, OrderTimelineItem
 from ..schemas.user import UserResponse, UserAdminUpdate
@@ -14,21 +14,15 @@ from ..crud.delivery import create_delivery
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
-async def verify_admin(current_user=Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return current_user
-
-
 @router.get("/dashboard")
-async def admin_dashboard(admin=Depends(verify_admin), db: Session = Depends(get_db)):
+async def admin_dashboard(admin=Depends(get_current_admin), db: Session = Depends(get_db)):
     return get_dashboard_stats(db)
 
 
 # ---- Orders Management ----
 @router.get("/orders", response_model=OrderListResponse)
 async def admin_list_orders(
-    admin=Depends(verify_admin),
+    admin=Depends(get_current_admin),
     db: Session = Depends(get_db),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -78,7 +72,7 @@ async def admin_list_orders(
 async def admin_update_order_status(
     order_id: int,
     body: OrderStatusUpdate,
-    admin=Depends(verify_admin),
+    admin=Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     order = get_order_by_id(db, order_id)
@@ -101,7 +95,7 @@ async def admin_update_order_status(
 # ---- Products Management ----
 @router.get("/products")
 async def admin_list_products(
-    admin=Depends(verify_admin),
+    admin=Depends(get_current_admin),
     db: Session = Depends(get_db),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
@@ -127,7 +121,7 @@ async def admin_list_products(
 @router.post("/products", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 async def admin_create_product(
     product: ProductCreate,
-    admin=Depends(verify_admin),
+    admin=Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     new_product = create_product(db, product)
@@ -145,7 +139,7 @@ async def admin_create_product(
 async def admin_update_product(
     product_id: int,
     product: ProductUpdate,
-    admin=Depends(verify_admin),
+    admin=Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     existing = get_product_by_id(db, product_id)
@@ -165,7 +159,7 @@ async def admin_update_product(
 @router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def admin_delete_product(
     product_id: int,
-    admin=Depends(verify_admin),
+    admin=Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     existing = get_product_by_id(db, product_id)
@@ -178,7 +172,7 @@ async def admin_delete_product(
 # ---- Inventory ----
 @router.get("/inventory")
 async def admin_get_inventory(
-    admin=Depends(verify_admin),
+    admin=Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     items, total = list_products(db, limit=100, is_active=None)
@@ -199,7 +193,7 @@ async def admin_get_inventory(
 @router.post("/inventory/adjust")
 async def admin_adjust_inventory(
     body: dict,
-    admin=Depends(verify_admin),
+    admin=Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     product_id = body.get("product_id")
@@ -216,7 +210,7 @@ async def admin_adjust_inventory(
 # ---- Users Management ----
 @router.get("/users")
 async def admin_list_users(
-    admin=Depends(verify_admin),
+    admin=Depends(get_current_admin),
     db: Session = Depends(get_db),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
@@ -240,7 +234,7 @@ async def admin_list_users(
 async def admin_update_user(
     user_id: int,
     body: UserAdminUpdate,
-    admin=Depends(verify_admin),
+    admin=Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     user = get_user_by_id(db, user_id)
