@@ -121,6 +121,12 @@ export const usersApi = {
 // Deliveries API
 export const deliveriesApi = {
   track: (deliveryId: number) => api.get(`/api/deliveries/${deliveryId}/track`),
+  assign: (deliveryId: number, deliveryPersonId: number) =>
+    api.patch(`/api/deliveries/${deliveryId}/assign`, { delivery_person_id: deliveryPersonId }),
+  updateStatus: (deliveryId: number, status: string) =>
+    api.patch(`/api/deliveries/${deliveryId}/status`, null, { params: { status } }),
+  updateLocation: (deliveryId: number, latitude: number, longitude: number) =>
+    api.post(`/api/deliveries/${deliveryId}/update-location`, { latitude, longitude }),
 };
 
 // Admin API
