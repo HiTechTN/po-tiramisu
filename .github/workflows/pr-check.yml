@@ -1,0 +1,69 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [master, main]
+
+concurrency:
+  group: pr-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+permissions:
+  contents: read
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Shared package: build + test
+  # ──────────────────────────────────────────────
+  shared:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w packages/shared
+      - run: npm test
+
+  # ──────────────────────────────────────────────
+  # Web: typecheck + tests + lint (no build)
+  # ──────────────────────────────────────────────
+  web:
+    runs-on: ubuntu-latest
+    needs: shared
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w packages/shared
+      - run: npm run typecheck
+        working-directory: apps/web
+      - run: npm test
+        working-directory: apps/web
+      - run: npm run lint
+        working-directory: apps/web
+
+  # ──────────────────────────────────────────────
+  # Admin: typecheck
+  # ──────────────────────────────────────────────
+  admin:
+    runs-on: ubuntu-latest
+    needs: shared
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w packages/shared
+      - name: Typecheck admin
+        run: npx tsc --noEmit -p apps/admin/tsconfig.json
