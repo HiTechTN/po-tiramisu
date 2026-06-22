@@ -1,23 +1,29 @@
 """
-Shared in-memory state for the application.
+Shared cart state for the application.
 
-In production, replace the in-memory dict with Redis (see redis_client.py).
-For now, this module ensures all routes share the same cart data.
+Cart data is persisted in Redis when available, with an automatic
+in-memory fallback for development and testing.  All functions are
+``async`` so they can ``await`` the Redis helpers in ``redis_client.py``.
 """
+
+from .redis_client import get_cart, set_cart, delete_cart, reset_carts
 
 DELIVERY_FEE = 5.0
 
-# In-memory cart per user (user_id -> cart dict)
-_user_carts: dict[int, dict] = {}
+
+async def get_user_cart(user_id: int) -> dict:
+    """Return the user's cart, creating an empty one if it doesn't exist."""
+    cart = await get_cart(user_id)
+    if not cart or "items" not in cart:
+        return {"items": [], "promo_code": None, "discount": 0}
+    return cart
 
 
-def get_user_cart(user_id: int) -> dict:
-    """Get or create a cart for the given user."""
-    if user_id not in _user_carts:
-        _user_carts[user_id] = {"items": [], "promo_code": None, "discount": 0}
-    return _user_carts[user_id]
+async def clear_user_cart(user_id: int) -> None:
+    """Reset the user's cart to an empty state."""
+    await set_cart(user_id, {"items": [], "promo_code": None, "discount": 0})
 
 
-def clear_user_cart(user_id: int) -> None:
-    """Clear a user's cart."""
-    _user_carts[user_id] = {"items": [], "promo_code": None, "discount": 0}
+async def save_user_cart(user_id: int, cart: dict) -> None:
+    """Persist a modified cart back to storage."""
+    await set_cart(user_id, cart)

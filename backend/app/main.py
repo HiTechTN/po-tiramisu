@@ -2,12 +2,22 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from .limiter import limiter
 import logging
 import time
+
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+except ImportError:
+    sentry_sdk = None
 
 from .config import get_settings
 from .database import engine, Base, SessionLocal
 from .seeds import seed_database
+from .redis_client import close_redis_client
 
 settings = get_settings()
 
@@ -22,6 +32,8 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS
 app.add_middleware(
@@ -54,6 +66,15 @@ async def global_exception_handler(request: Request, exc: Exception):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Po_Tiramisu API...")
+    # Initialize Sentry if DSN is configured
+    if sentry_sdk and settings.SENTRY_DSN:
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            integrations=[FastApiIntegration()],
+            traces_sample_rate=0.1,
+            environment=settings.ENVIRONMENT,
+        )
+        logger.info("Sentry error tracking initialized.")
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
@@ -62,6 +83,7 @@ async def lifespan(app: FastAPI):
         db.close()
     logger.info("Database initialized and seeded.")
     yield
+    await close_redis_client()
     logger.info("Shutting down Po_Tiramisu API...")
 
 

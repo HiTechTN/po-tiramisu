@@ -90,6 +90,11 @@ async def flouci_callback(request: Request, db: Session = Depends(get_db)):
     else:
         fail_payment(db, payment, reference)
         update_order_payment_status(db, order, "failed")
+        from ..utils.email import send_payment_failed
+        from ..crud.user import get_user_by_id
+        user = get_user_by_id(db, order.user_id)
+        if user:
+            send_payment_failed(user.email, user.full_name, order.id)
 
     return {"success": True, "message": "Webhook processed"}
 

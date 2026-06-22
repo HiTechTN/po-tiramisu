@@ -94,12 +94,17 @@ def list_all_orders(
     status: str = None,
     payment_status: str = None,
 ):
-    query = db.query(Order)
+    query = db.query(Order).options(joinedload(Order.items), joinedload(Order.delivery))
     if status:
         query = query.filter(Order.status == status)
     if payment_status:
         query = query.filter(Order.payment_status == payment_status)
-    total = query.count()
+    count_query = db.query(Order)
+    if status:
+        count_query = count_query.filter(Order.status == status)
+    if payment_status:
+        count_query = count_query.filter(Order.payment_status == payment_status)
+    total = count_query.count()
     items = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
     return items, total
 
@@ -166,6 +171,22 @@ def get_dashboard_stats(db: Session):
         .all()
     )
 
+    # Top products by sales volume
+    from ..models.product import Product
+    top_products_raw = (
+        db.query(
+            Product.name,
+            func.sum(OrderItem.quantity).label("count"),
+        )
+        .join(OrderItem, Product.id == OrderItem.product_id)
+        .join(Order, OrderItem.order_id == Order.id)
+        .filter(Order.payment_status == "completed")
+        .group_by(Product.name)
+        .order_by(func.sum(OrderItem.quantity).desc())
+        .limit(5)
+        .all()
+    )
+
     return {
         "total_orders": total_orders,
         "total_revenue_dt": float(total_revenue),
@@ -186,5 +207,6 @@ def get_dashboard_stats(db: Session):
             {"date": str(r.date), "revenue": float(r.revenue or 0), "count": r.count}
             for r in daily_revenue
         ],
+        "top_products": [{"name": name, "count": int(count or 0)} for name, count in top_products_raw],
         "order_status_distribution": {s: c for s, c in status_dist},
     }

@@ -15,7 +15,6 @@ from ..crud.order import create_order_from_cart, get_order_by_id, list_user_orde
 from ..crud.payment import create_payment
 from ..crud.delivery import create_delivery
 from ..models.user import Address
-import json
 
 from ..state import get_user_cart, clear_user_cart
 
@@ -36,7 +35,7 @@ async def create_order(
         raise HTTPException(status_code=400, detail="Invalid delivery address")
 
     # Get cart
-    cart = get_user_cart(current_user.id)
+    cart = await get_user_cart(current_user.id)
     if not cart.get("items"):
         raise HTTPException(status_code=400, detail="Cart is empty")
 
@@ -77,8 +76,12 @@ async def create_order(
         order.payment_ref = f"PAY-{payment.id}"
         db.commit()
 
+    # Send confirmation email
+    from ..utils.email import send_order_confirmation
+    send_order_confirmation(current_user.email, current_user.full_name, order.id, order.total_dt)
+
     # Clear cart
-    clear_user_cart(current_user.id)
+    await clear_user_cart(current_user.id)
 
     # Build timeline
     timeline = [

@@ -6,9 +6,8 @@ from ..security import get_current_user
 from ..schemas.order import CartItemAdd, CartResponse, CartItemResponse, PromoCodeApply, PromoCodeResponse
 from ..models.product import Product
 from ..crud.payment import get_promo_by_code, validate_promo_code, apply_promo_code, increment_promo_usage
-import json
 
-from ..state import get_user_cart, clear_user_cart, DELIVERY_FEE
+from ..state import get_user_cart, clear_user_cart, save_user_cart, DELIVERY_FEE
 
 router = APIRouter(prefix="/api/cart", tags=["cart"])
 
@@ -53,7 +52,7 @@ async def get_cart(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    cart = get_user_cart(current_user.id)
+    cart = await get_user_cart(current_user.id)
     cart["user_id"] = current_user.id
     return _calculate_totals(cart, db)
 
@@ -71,7 +70,7 @@ async def add_to_cart(
     if product.quantity_available < item.quantity:
         raise HTTPException(status_code=400, detail="Insufficient stock")
 
-    cart = get_user_cart(current_user.id)
+    cart = await get_user_cart(current_user.id)
     cart["user_id"] = current_user.id
 
     # Check if item already in cart
@@ -81,6 +80,7 @@ async def add_to_cart(
     else:
         cart["items"].append({"product_id": item.product_id, "quantity": item.quantity})
 
+    await save_user_cart(current_user.id, cart)
     return _calculate_totals(cart, db)
 
 
@@ -91,7 +91,7 @@ async def update_cart_item(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    cart = get_user_cart(current_user.id)
+    cart = await get_user_cart(current_user.id)
     cart["user_id"] = current_user.id
 
     existing = next((i for i in cart["items"] if i["product_id"] == product_id), None)
@@ -103,6 +103,7 @@ async def update_cart_item(
     else:
         existing["quantity"] = quantity
 
+    await save_user_cart(current_user.id, cart)
     return _calculate_totals(cart, db)
 
 
@@ -112,14 +113,15 @@ async def remove_from_cart(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    cart = get_user_cart(current_user.id)
+    cart = await get_user_cart(current_user.id)
     cart["items"] = [i for i in cart["items"] if i["product_id"] != product_id]
+    await save_user_cart(current_user.id, cart)
     return None
 
 
 @router.delete("/clear", status_code=status.HTTP_204_NO_CONTENT)
 async def clear_cart(current_user=Depends(get_current_user)):
-    clear_user_cart(current_user.id)
+    await clear_user_cart(current_user.id)
     return None
 
 
@@ -129,7 +131,7 @@ async def apply_promo(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    cart = get_user_cart(current_user.id)
+    cart = await get_user_cart(current_user.id)
     cart_calc = _calculate_totals(cart, db)
 
     promo, error = validate_promo_code(db, body.promo_code, cart_calc.subtotal_dt)
@@ -139,6 +141,7 @@ async def apply_promo(
     discount = apply_promo_code(db, promo, cart_calc.subtotal_dt)
     cart["promo_code"] = body.promo_code.upper()
     cart["discount"] = discount
+    await save_user_cart(current_user.id, cart)
 
     new_total = max(0, cart_calc.subtotal_dt + cart_calc.delivery_fee_dt - discount)
 

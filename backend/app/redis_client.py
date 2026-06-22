@@ -1,68 +1,109 @@
-import aioredis
+"""
+Redis-backed cart storage with in-memory fallback.
+
+Uses ``redis.asyncio`` (built into redis-py >= 4.2).  When Redis is
+unavailable (e.g. during unit tests without a Redis container), every
+function silently falls back to an in-memory dictionary so the existing
+test-suite continues to work unchanged.
+"""
+
 import json
-from typing import Any, Dict
+import logging
+from typing import Any, Dict, Optional
+
 from .config import get_settings
 
-# ── Redis Client Wrapper ───────────────────────────────────────
-# This module provides async helpers to persist the shopping‑cart in
-# Redis.  When Redis is unavailable (e.g., during unit tests without a
-# Redis container), the functions fall back to an in‑memory dictionary
-# so the existing test‑suite continues to work unchanged.
+logger = logging.getLogger(__name__)
 
-# In‑memory fallback (used when Redis connection fails)
-_IN_MEMORY_CART: Dict[int, Dict[str, Any]] = {}
+# ── In-memory fallback ──────────────────────────────────────────
+_IN_MEMORY_CARTS: Dict[int, Dict[str, Any]] = {}
+
+# Module-level cached Redis client (lazy singleton)
+_redis_client = None
 
 
-async def _get_redis_client() -> aioredis.Redis:
-    """Create (or retrieve) a Redis client.
-    Errors are *not* swallowed here – callers decide whether to use the
-    fallback based on the exception type.
-    """
-    settings = get_settings()
-    return aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+async def _get_redis_client():
+    """Return a cached ``redis.asyncio`` client, or *None* if unavailable."""
+    global _redis_client
+    if _redis_client is not None:
+        return _redis_client
+
+    try:
+        import redis.asyncio as aioredis
+        settings = get_settings()
+        _redis_client = aioredis.from_url(
+            settings.REDIS_URL,
+            decode_responses=True,
+            socket_connect_timeout=2,
+        )
+        # Quick connectivity check
+        await _redis_client.ping()
+        logger.info("Redis connection established (%s)", settings.REDIS_URL)
+        return _redis_client
+    except Exception as exc:
+        logger.warning("Redis unavailable, using in-memory fallback: %s", exc)
+        _redis_client = None
+        return None
+
+
+async def close_redis_client():
+    """Gracefully close the Redis connection (called on app shutdown)."""
+    global _redis_client
+    if _redis_client is not None:
+        try:
+            await _redis_client.close()
+        except Exception:
+            pass
+        _redis_client = None
+
+
+# ── Cart helpers ────────────────────────────────────────────────
+
+_EMPTY_CART: Dict[str, Any] = {"items": [], "promo_code": None, "discount": 0}
+
+
+def _cart_key(user_id: int) -> str:
+    return f"cart:{user_id}"
 
 
 async def get_cart(user_id: int) -> Dict[str, Any]:
-    """Return a user's cart.
-    If Redis is reachable, the cart is stored/retrieved as JSON under the
-    key ``cart:{user_id}``.  On any connection error, the function returns
-    the cart from the in‑memory fallback dict.
-    """
-    try:
-        client = await _get_redis_client()
-        raw = await client.get(f"cart:{user_id}")
-        if raw is None:
-            return {"items": [], "promo_code": None, "discount": 0.0}
-        return json.loads(raw)
-    except Exception:
-        # Fallback – either Redis not running or connection refused
-        return _IN_MEMORY_CART.get(user_id, {"items": [], "promo_code": None, "discount": 0.0})
+    """Return a user's cart.  Redis → in-memory fallback."""
+    client = await _get_redis_client()
+    if client is not None:
+        try:
+            raw = await client.get(_cart_key(user_id))
+            if raw is None:
+                return {"items": [], "promo_code": None, "discount": 0}
+            return json.loads(raw)
+        except Exception:
+            pass
+    return _IN_MEMORY_CARTS.get(user_id, {"items": [], "promo_code": None, "discount": 0})
 
 
 async def set_cart(user_id: int, cart: Dict[str, Any]) -> None:
-    """Persist a user's cart.
-    Writes the cart to Redis when possible; otherwise updates the in‑memory
-    fallback dictionary.
-    """
-    try:
-        client = await _get_redis_client()
-        await client.set(f"cart:{user_id}", json.dumps(cart))
-    except Exception:
-        _IN_MEMORY_CART[user_id] = cart
+    """Persist a user's cart.  Redis → in-memory fallback."""
+    client = await _get_redis_client()
+    if client is not None:
+        try:
+            await client.set(_cart_key(user_id), json.dumps(cart))
+            return
+        except Exception:
+            pass
+    _IN_MEMORY_CARTS[user_id] = cart
 
 
 async def delete_cart(user_id: int) -> None:
-    """Delete a user's cart.
-    Removes the entry from Redis if reachable; otherwise removes it from
-    the fallback dictionary.
-    """
-    try:
-        client = await _get_redis_client()
-        await client.delete(f"cart:{user_id}")
-    except Exception:
-        _IN_MEMORY_CART.pop(user_id, None)
+    """Delete a user's cart.  Redis → in-memory fallback."""
+    client = await _get_redis_client()
+    if client is not None:
+        try:
+            await client.delete(_cart_key(user_id))
+            return
+        except Exception:
+            pass
+    _IN_MEMORY_CARTS.pop(user_id, None)
 
-# ---------------------------------------------------------------------
-# Note: the functions are intentionally tiny – the heavy lifting (validation,
-# business rules) lives in ``backend/app/state.py`` and the route handlers.
-# ---------------------------------------------------------------------
+
+def reset_carts() -> None:
+    """Clear all in-memory carts (for use in tests)."""
+    _IN_MEMORY_CARTS.clear()

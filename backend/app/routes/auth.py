@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
@@ -20,11 +20,14 @@ from ..schemas.user import (
 )
 from ..crud.user import create_user, get_user_by_email
 
+from ..limiter import limiter
+
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=dict, status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserRegister, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, user_data: UserRegister, db: Session = Depends(get_db)):
     existing = get_user_by_email(db, user_data.email)
     if existing:
         raise HTTPException(
@@ -51,7 +54,8 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=dict)
-async def login(credentials: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db)):
     user = get_user_by_email(db, credentials.email)
     if not user or not verify_password(credentials.password, user.password_hash):
         raise HTTPException(

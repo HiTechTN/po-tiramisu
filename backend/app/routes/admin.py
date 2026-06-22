@@ -37,6 +37,24 @@ async def admin_list_orders(
         if order.status != "pending":
             timeline.append(OrderTimelineItem(status=order.status, timestamp=order.updated_at, message=order.status))
 
+        # Build delivery info if present
+        delivery_info = None
+        if order.delivery:
+            dp = order.delivery.delivery_person
+            delivery_info = {
+                "id": order.delivery.id,
+                "uuid": str(order.delivery.uuid),
+                "status": order.delivery.status,
+                "delivery_person_name": dp.full_name if dp else None,
+                "delivery_person_phone": dp.phone if dp else None,
+                "current_location": {
+                    "latitude": order.delivery.current_latitude,
+                    "longitude": order.delivery.current_longitude,
+                } if order.delivery.current_latitude else None,
+                "estimated_delivery": order.estimated_delivery.isoformat() if order.estimated_delivery else None,
+                "location_history": order.delivery.location_history or [],
+            }
+
         result.append(
             OrderResponse(
                 id=order.id,
@@ -59,6 +77,7 @@ async def admin_list_orders(
                     )
                     for item in order.items
                 ],
+                delivery=delivery_info,
                 created_at=order.created_at,
                 updated_at=order.updated_at,
                 timeline=timeline,

@@ -57,11 +57,11 @@ def _clear_cart_state():
     """Clear the in-memory cart store and user ref between tests."""
     global _test_user_ref
     _test_user_ref = None
-    from app.state import _user_carts
-    _user_carts.clear()
+    from app.redis_client import reset_carts
+    reset_carts()
     yield
     _test_user_ref = None
-    _user_carts.clear()
+    reset_carts()
 
 
 @pytest.fixture(scope="function")
