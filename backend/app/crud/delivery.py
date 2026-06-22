@@ -1,5 +1,5 @@
-from sqlalchemy.orm import Session
-from typing import Optional
+from sqlalchemy.orm import Session, joinedload
+from typing import Optional, Tuple, List
 from ..models.delivery import Delivery
 from ..schemas.order import DeliveryCreate
 
@@ -76,4 +76,36 @@ def list_deliveries(db: Session, skip: int = 0, limit: int = 20, status: str = N
         query = query.filter(Delivery.status == status)
     total = query.count()
     items = query.order_by(Delivery.created_at.desc()).offset(skip).limit(limit).all()
+    return items, total
+
+
+def list_deliveries_admin(
+    db: Session,
+    skip: int = 0,
+    limit: int = 20,
+    status: str = None,
+) -> Tuple[List[Delivery], int]:
+    """List deliveries with eager-loaded order, customer, delivery person, and address."""
+    query = (
+        db.query(Delivery)
+        .options(
+            joinedload(Delivery.order).joinedload("user"),
+            joinedload(Delivery.order).joinedload("delivery_address"),
+            joinedload(Delivery.delivery_person),
+        )
+    )
+    if status:
+        query = query.filter(Delivery.status == status)
+    count_query = db.query(Delivery)
+    if status:
+        count_query = count_query.filter(Delivery.status == status)
+    total = count_query.count()
+    items = (
+        query
+        .order_by(Delivery.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .unique()
+        .all()
+    )
     return items, total

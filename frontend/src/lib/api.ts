@@ -137,6 +137,8 @@ export const adminApi = {
   getInventory: () => api.get('/api/admin/inventory'),
   adjustInventory: (productId: number, adjustment: number) =>
     api.post('/api/admin/inventory/adjust', { product_id: productId, adjustment }),
+  getDeliveries: (params?: { skip?: number; limit?: number; status?: string }) =>
+    api.get('/api/admin/deliveries', { params }),
   getUsers: (params?: any) => api.get('/api/admin/users', { params }),
   updateUser: (userId: number, data: any) => api.patch(`/api/admin/users/${userId}`, data),
 };

@@ -9,7 +9,7 @@ from ..schemas.user import UserResponse, UserAdminUpdate
 from ..crud.order import get_dashboard_stats, list_all_orders, get_order_by_id, update_order_status
 from ..crud.product import create_product, update_product, delete_product, get_product_by_id, list_products, get_product_avg_rating, get_product_reviews_count, adjust_inventory
 from ..crud.user import list_users, update_user, get_user_by_id
-from ..crud.delivery import create_delivery
+from ..crud.delivery import create_delivery, list_deliveries_admin
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -224,6 +224,54 @@ async def admin_adjust_inventory(
 
     updated = adjust_inventory(db, product, adjustment)
     return {"success": True, "quantity_available": updated.quantity_available}
+
+
+# ---- Deliveries Management ----
+@router.get("/deliveries")
+async def admin_list_deliveries(
+    admin=Depends(get_current_admin),
+    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    status_filter: str = Query(None, alias="status"),
+):
+    items, total = list_deliveries_admin(db, skip, limit, status_filter)
+    result = []
+    for d in items:
+        order = d.order
+        if not order:
+            continue
+        customer = order.user
+        dp = d.delivery_person
+        addr = order.delivery_address
+
+        result.append({
+            "id": d.id,
+            "uuid": str(d.uuid),
+            "status": d.status,
+            "order_id": d.order_id,
+            "order_status": order.status if order else None,
+            "order_total_dt": order.total_dt if order else None,
+            "customer_name": customer.full_name if customer else None,
+            "customer_email": customer.email if customer else None,
+            "customer_phone": customer.phone if customer else None,
+            "delivery_person_name": dp.full_name if dp else None,
+            "delivery_person_phone": dp.phone if dp else None,
+            "delivery_address": {
+                "street": addr.street,
+                "city": addr.city,
+                "governorate": addr.governorate,
+            } if addr else None,
+            "current_latitude": d.current_latitude,
+            "current_longitude": d.current_longitude,
+            "pickup_time": d.pickup_time.isoformat() if d.pickup_time else None,
+            "delivery_time": d.delivery_time.isoformat() if d.delivery_time else None,
+            "notes": d.notes,
+            "created_at": d.created_at.isoformat() if d.created_at else None,
+            "updated_at": d.updated_at.isoformat() if d.updated_at else None,
+        })
+
+    return {"items": result, "total": total, "skip": skip, "limit": limit}
 
 
 # ---- Users Management ----
