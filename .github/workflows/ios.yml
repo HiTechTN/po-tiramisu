@@ -24,14 +24,14 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      - name: Build iOS app (unsigned)
+      - name: Build iOS app (unsigned CI build)
         run: |
           cd ios/App
           xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -archivePath build/App.xcarchive archive CODE_SIGNING_ALLOWED=NO
-          xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -exportArchive -archivePath build/App.xcarchive -exportOptionsPlist ../../exportOptions.plist -exportPath build/ipa CODE_SIGNING_ALLOWED=NO
         working-directory: apps/web
-      - name: Upload IPA
+      - name: Upload xcarchive
         uses: actions/upload-artifact@v4
         with:
-          name: po-tiramisu-ios
-          path: apps/web/ios/App/build/ipa/*.ipa
+          name: po-tiramisu-ios-archive
+          path: apps/web/ios/App/build/App.xcarchive
+          retention-days: 7
